@@ -20,7 +20,7 @@ Every step opens with **Why this matters**, and every check has a **?** that exp
 
 ## Scoring
 
-Variables 30 · Styles 10 · Components 30 · Layers 30. Each step is the average of its checks' pass ratios; a check with nothing to measure is skipped. Contrast is reported but never scored. The checklist is shown as "n of 22", separately.
+Variables 30 · Styles 10 · Components 30 · Layers 30. Each step is a weighted average of its checks' pass ratios, weighted by what an agent reads first: in Layers, colours count 3, semantic tokens and text 2, radius, spacing, layout and names 1; in Components, descriptions 3, property names 2, the rest 1 or less; in Variables, split, naming, scopes and code names 2, the rest 1 or less. A check with nothing to measure is skipped. Contrast is reported but never scored. The checklist is shown as "n of 22", separately.
 
 ## How matching works
 

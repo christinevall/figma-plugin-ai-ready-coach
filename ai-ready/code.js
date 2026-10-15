@@ -327,8 +327,14 @@ async function runAudit(scope) {
     try { var k = s.fontName.family + '|' + s.fontName.style + '|' + s.fontSize; if (!styleIndex[k]) styleIndex[k] = []; styleIndex[k].push({ id: s.id, name: s.name + (s.remote ? ' (library)' : '') }); } catch (e) {}
   });
 
+  // How much each check weighs in its step's score. Colours and descriptions are what an agent
+  // reads first, so a file with raw colours cannot score well on Layers however tidy its radii are.
+  var CHECK_WEIGHT = { colors: 3, 'semantic-on-layers': 2, text: 2, radius: 1, spacing: 1, layout: 1, names: 1,
+    desc: 3, 'desc-rich': 1, props: 2, values: 1, states: 1, 'docs-link': 0.5, 'comp-layout': 1, hidden: 0.5,
+    split: 2, 'semantic-naming': 2, scopes: 2, 'code-syntax': 2, 'var-desc': 1, 'hide-primitives': 1, modes: 0.5, 'naming-style': 0.5,
+    'text-styles-exist': 3, 'text-styles-bound': 1, 'text-style-desc': 0.5 };
   function mkCheck(key, label, severity, why, fix, opts) {
-    var c = { key: key, label: label, severity: severity, why: why, fix: fix, pass: 0, total: 0, items: [], scored: severity !== 'note' };
+    var c = { key: key, label: label, severity: severity, why: why, fix: fix, pass: 0, total: 0, items: [], scored: severity !== 'note', weight: CHECK_WEIGHT[key] || 1 };
     if (opts) Object.keys(opts).forEach(function (k) { c[k] = opts[k]; });
     return c;
   }
@@ -628,13 +634,13 @@ async function runAudit(scope) {
   var steps = [stepVariables, stepStyles, stepComponents, stepLayers];
   var wSum = 0, sSum = 0, counts = { errors: 0, warnings: 0, infos: 0 };
   steps.forEach(function (st) {
-    var ratios = [];
+    var wSum2 = 0, rSum = 0;
     st.checks.forEach(function (c) {
-      if (c.scored && c.total > 0) ratios.push(c.pass / c.total);
+      if (c.scored && c.total > 0) { wSum2 += c.weight; rSum += (c.pass / c.total) * c.weight; }
       if (c.items.length) { if (c.severity === 'error') counts.errors += c.items.length; else if (c.severity === 'warn') counts.warnings += c.items.length; else if (c.severity === 'info') counts.infos += c.items.length; }
       c.items = c.items.slice(0, 400);
     });
-    st.score = ratios.length ? Math.round(ratios.reduce(function (a, b) { return a + b; }, 0) / ratios.length * 100) : null;
+    st.score = wSum2 ? Math.round(rSum / wSum2 * 100) : null;
     if (st.score !== null) { wSum += st.weight; sSum += st.score * st.weight; }
   });
   return {

@@ -233,6 +233,17 @@ function paintBound(hex, v) { return solid(hex, { boundVariables: { color: bound
   }
 
   // -------------------------------------------------------------------------
+  section('Scoring');
+  {
+    const f = fixture();
+    const set = add(f.page, node('COMPONENT_SET', 'Alert', { componentPropertyDefinitions: { variant: { type: 'VARIANT', variantOptions: ['info', 'danger'] } }, description: 'Alert: an inline message block. Use for status. Not for confirmations, use Dialog.' }));
+    ['info', 'danger'].forEach(v => { const c = add(set, node('COMPONENT', 'variant=' + v, { layoutMode: 'HORIZONTAL', paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16, itemSpacing: 0, boundVariables: { paddingLeft: bound(f.vars.inset), paddingRight: bound(f.vars.inset), paddingTop: bound(f.vars.inset), paddingBottom: bound(f.vars.inset), topLeftRadius: bound(f.vars.rad) }, cornerRadius: 8, fills: [solid('#2F6BFF')], strokes: [solid('#E7E4DC')] })); add(c, node('TEXT', 'title', { textStyleId: f.styles.body.id, fills: [solid('#16161D')] })); add(c, node('TEXT', 'body', { textStyleId: f.styles.body.id, fills: [solid('#16161D')] })); });
+    f.select(set);
+    const r = await audit(f); const layers = r.steps.find(s => s.key === 'layers');
+    t('all colours detached, everything else bound: Layers scores well below 70', layers.score < 70, 'score ' + layers.score);
+  }
+
+  // -------------------------------------------------------------------------
   section('Library variables (a product file that uses a published library)');
   {
     const f = new File(); // no local variables at all

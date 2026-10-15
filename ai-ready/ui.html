@@ -287,7 +287,7 @@
   // ---------------------------------------------------------------------------
   // State and helpers
   // ---------------------------------------------------------------------------
-  var VERSION = '0.9.18 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
+  var VERSION = '0.9.19 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
   var FEEDBACK_EMAIL = 'hello@moonlearning.io'; // beta feedback address; shown in the banner and in the report
   var state = { scope: 'selection', result: null, step: 0, checklist: {}, done: {}, sel: null, pending: {}, expanded: {} };
   var STEPS = ['overview', 'variables', 'styles', 'components', 'layers', 'checklist', 'report'];
@@ -327,7 +327,8 @@
       + '<p>Select any component on the canvas and the card below turns into a description editor. A draft is written from the name and properties; edit it so it is true.</p>',
     layers: '<p>This is where the tokens get <b>used</b>. A fill bound to <code>color/background/brand</code> tells an agent the token; a raw <code>#2F6BFF</code> tells it nothing. The same goes for radius, padding, gaps and type.</p>'
       + '<p>Where a raw value matches a variable exactly, the plugin offers the match. It prefers <b>semantic</b> tokens over primitives. If nothing matches, the value is off your scale: either add a token or change the value.</p>'
-      + '<p><b>Auto-layout</b> is how an agent reads direction, spacing and resizing. <b>Names</b> like <code>Card / Header</code> are the hooks it uses to understand structure.</p>',
+      + '<p><b>Auto-layout</b> is how an agent reads direction, spacing and resizing. <b>Names</b> like <code>Card / Header</code> are the hooks it uses to understand structure.</p>'
+      + '<p>The score weighs checks by what an agent reads first: colours count three times, text and semantic tokens twice, radius, spacing, layout and names once.</p>',
     checklist: '<p>Some things no plugin can check: whether names match the code, whether the rules are written down, whether an agent can actually reach the file. This list is for those. Tick what is true. Ticks are saved in the file, so your whole team sees the same list.</p>'
       + '<p>The last item is the real test: give a fresh agent only this file and ask for a small screen. Every place it stumbles is a gap.</p>',
     report: '<p>A plain-text summary of scores, open findings and the checklist. Paste it into a ticket, a Slack message or a handover doc, so the developer side knows what is done and what is still open.</p>'
