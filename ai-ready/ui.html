@@ -306,7 +306,7 @@
   // ---------------------------------------------------------------------------
   // State and helpers
   // ---------------------------------------------------------------------------
-  var VERSION = '0.11.1 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
+  var VERSION = '0.11.2 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
   var FEEDBACK_EMAIL = 'hello@moonlearning.io'; // beta feedback address; shown in the banner and in the report
   var state = { scope: 'selection', result: null, step: 0, checklist: {}, done: {}, sel: null, pending: {}, expanded: {}, lessons: {}, read: {} };
   var STEPS = ['overview', 'variables', 'styles', 'components', 'layers', 'checklist', 'report'];
@@ -357,7 +357,7 @@
   var LESSONS = {
     variables: {
       concept: '<p>A <b>variable</b> is a value with a name. An agent reads the name, not the value, so the name has to say what the value is for. That is the whole idea behind two layers: <b>primitives</b> hold the values (<code>color/blue/500</code>), <b>semantics</b> hold the meaning (<code>color/background/brand</code>) and point at a primitive.</p>'
-        + '<pre>primitive                semantic                       layer\ncolor/blue/500  ◄────   color/background/brand  ◄────  Card background\n#2F6BFF                 --sds-color-background-brand   (bound)</pre>'
+        + '<pre>primitive         semantic                  layer\ncolor/blue/500 ◄─ color/background/brand ◄─ Card\n#2F6BFF           --sds-color-background-brand</pre>'
         + '<p>Three fields make a semantic token readable for a machine: its <b>scope</b> (where it may be used), its <b>code syntax</b> (its name in CSS) and its <b>description</b> (when to use it, when not).</p>',
       tryIt: 'Open the variable panel, pick one semantic token and look at its code syntax field. If it is empty, that is the name an agent would have to invent. Fill it here with the suggestion, then look at the token in Dev Mode: the code name is what shows up.',
       question: 'A layer is bound to color/blue/500. Dark mode comes. What happens?',
