@@ -233,6 +233,33 @@ function paintBound(hex, v) { return solid(hex, { boundVariables: { color: bound
   }
 
   // -------------------------------------------------------------------------
+  section('Real-library cases');
+  {
+    const f = fixture();
+    const btn = add(f.page, node('COMPONENT', 'Button', { layoutMode: 'HORIZONTAL', description: 'Button: the main action. Use once per view. Not for navigation.', fills: [paintBound('#2F6BFF', f.vars.bgBrand)], strokes: [solid('#000000', { opacity: 0 })] })); add(btn, node('TEXT', 'label', { textStyleId: f.styles.body.id, fills: [paintBound('#FFFFFF', f.vars.content)] })); add(btn, node('TEXT', 'x', { textStyleId: f.styles.body.id, fills: [paintBound('#FFFFFF', f.vars.content)] }));
+    const badge = add(f.page, node('COMPONENT', 'Badge', { layoutMode: 'HORIZONTAL', description: 'Badge: a small status label. Use for counts and states. Props: &lt;code&gt;variant&lt;/code&gt; and <b>size</b>.' })); add(badge, node('TEXT', 'a', { textStyleId: f.styles.body.id })); add(badge, node('TEXT', 'b', { textStyleId: f.styles.body.id }));
+    const shadow = f.effectStyle('elevation/raised');
+    const card = add(f.page, node('FRAME', 'Card', { layoutMode: 'VERTICAL', effects: [{ type: 'DROP_SHADOW', visible: true }], effectStyleId: '' })); add(card, node('TEXT', 'a', { textStyleId: f.styles.body.id })); add(card, node('TEXT', 'b', { textStyleId: f.styles.body.id }));
+    const card2 = add(f.page, node('FRAME', 'Card styled', { layoutMode: 'VERTICAL', effects: [{ type: 'DROP_SHADOW', visible: true }], effectStyleId: shadow.id })); add(card2, node('TEXT', 'a', { textStyleId: f.styles.body.id })); add(card2, node('TEXT', 'b', { textStyleId: f.styles.body.id }));
+    f.select(btn, badge, card, card2);
+    const r = await audit(f);
+    t('a fully transparent stroke (the 1px spacer border) is not a raw colour', !check(r, 'layers', 'colors').items.some(i => i.id === btn.id), JSON.stringify(check(r, 'layers', 'colors').items.map(i => i.name)));
+    const plain = check(r, 'components', 'desc-plain').items.find(i => i.id === badge.id);
+    t('a description with HTML codes is flagged', !!plain);
+    t('and the cleaned text has the words, not the codes', plain && plain.cleaned === 'Badge: a small status label. Use for counts and states. Props: variant and size.', plain && plain.cleaned);
+    t('a raw shadow is flagged when the file has effect styles, a styled one passes', check(r, 'layers', 'effects').items.some(i => i.id === card.id) && !check(r, 'layers', 'effects').items.some(i => i.id === card2.id));
+    t('"Primitives and semantics are separate" is polish, not worth fixing', check(r, 'variables', 'split').severity === 'info');
+  }
+  {
+    const f = fixture();
+    const cover = f.addPage('Cover'); add(cover, node('FRAME', 'Frame 1', { layoutMode: 'NONE', fills: [solid('#123456')] })); add(cover.children[0], node('TEXT', 'Text 1')); add(cover.children[0], node('TEXT', 'Text 2'));
+    const comps = f.addPage('Button'); const b = add(comps, node('COMPONENT', 'Button', { layoutMode: 'HORIZONTAL', description: 'Button: the main action. Use once per view. Not for navigation.', fills: [solid('#ABCDEF')] })); add(b, node('TEXT', 'label', { textStyleId: f.styles.body.id })); add(b, node('TEXT', 'x', { textStyleId: f.styles.body.id }));
+    const r = await audit(f, 'file');
+    t('whole-file scope skips documentation pages (Cover) and says so', r.steps.find(s => s.key === 'layers').meta.skippedPages.indexOf('Cover') >= 0);
+    t('whole-file scope still checks the component pages', check(r, 'layers', 'colors').items.some(i => i.id === b.id) && !check(r, 'layers', 'names').items.some(i => i.name === 'Frame 1'));
+  }
+
+  // -------------------------------------------------------------------------
   section('Scoring');
   {
     const f = fixture();

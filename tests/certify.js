@@ -47,7 +47,7 @@ const tyAlias = f.variable(mixed, 'typography/body-md/font-size', 'FLOAT', [{ al
 // Styles
 const bodyMd = f.textStyle('typography/body-md', 'Inter', 'Regular', 16, { description: 'Body copy.', boundVariables: { fontSize: bound(tyAlias), fontFamily: bound(P['font-family/sans']) } });
 const titleSm = f.textStyle('typography/title-sm', 'Inter', 'Semi Bold', 14, { description: 'Small titles in cards and alerts.', boundVariables: { fontSize: bound(P['font-size/300']) } });
-const caption = f.textStyle('typography/caption', 'Inter', 'Regular', 12, { description: '' }); plant('text-style-desc', 'typography/caption'); plant('text-styles-bound', 'typography/caption');
+const caption = f.textStyle('typography/caption', 'Inter', 'Regular', 12, { description: '' }); const raised = f.effectStyle('elevation/raised'); plant('text-style-desc', 'typography/caption'); plant('text-styles-bound', 'typography/caption');
 
 // Components: a tidy Button set
 const button = add(f.page, node('COMPONENT_SET', 'Button', { strokes: [solid('#752C9F')], cornerRadius: 5, layoutMode: 'NONE', description: 'Button: the main action. Use once per view for the primary action. Not for navigation, use Link. States: default, hover, focus, disabled.', documentationLinks: [{ uri: 'https://example.com/button' }],
@@ -55,7 +55,7 @@ const button = add(f.page, node('COMPONENT_SET', 'Button', { strokes: [solid('#7
 ['primary', 'secondary'].forEach(v => ['default', 'hover', 'disabled'].forEach(st => {
   const c = add(button, node('COMPONENT', 'variant=' + v + ', state=' + st, { layoutMode: 'HORIZONTAL', paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8, itemSpacing: 8, cornerRadius: 8,
     boundVariables: { paddingLeft: bound(S['space/inset/md']), paddingRight: bound(S['space/inset/md']), paddingTop: bound(S['space/inset/sm']), paddingBottom: bound(S['space/inset/sm']), itemSpacing: bound(S['space/inset/sm']), topLeftRadius: bound(S['radius/md']) },
-    fills: [pb(v === 'primary' ? '#1E4FCC' : '#FFFFFF', v === 'primary' ? S['color/background/brand'] : S['color/background/surface'])], strokes: v === 'secondary' ? [pb('#E7E4DC', S['color/border/subtle'])] : [] }));
+    fills: [pb(v === 'primary' ? '#1E4FCC' : '#FFFFFF', v === 'primary' ? S['color/background/brand'] : S['color/background/surface'])], strokes: v === 'secondary' ? [pb('#E7E4DC', S['color/border/subtle'])] : [solid('#000000', { opacity: 0 })] }));
   const icon = add(c, node('INSTANCE', 'leading icon', { visible: st !== 'disabled', componentPropertyReferences: { visible: 'show icon#1:2' }, fills: [] })); add(icon, node('VECTOR', 'Vector', { fills: [solid('#ABCDEF')] })); // raw colour inside an instance: the main component's business
   add(c, node('TEXT', 'label', { fontName: { family: 'Inter', style: 'Semi Bold' }, fontSize: 14, textStyleId: titleSm.id, fills: [v === 'primary' ? pb('#FFFFFF', S['color/content/on-brand']) : pb('#212529', S['color/content/default'])] }));
 }));
@@ -88,20 +88,22 @@ const toggle = add(f.page, node('COMPONENT_SET', 'Toggle', { description: 'Toggl
 const alert2 = add(f.page, node('COMPONENT_SET', 'Alert2', { description: 'A detached copy of Alert for testing. Not for use.', documentationLinks: [{ uri: 'https://example.com/alert' }], componentPropertyDefinitions: { variant: { type: 'VARIANT', variantOptions: ['info'] } } }));
 const a2 = add(alert2, node('COMPONENT', 'variant=info', { layoutMode: 'HORIZONTAL', paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16, itemSpacing: 8, cornerRadius: 8, boundVariables: { paddingLeft: bound(S['space/inset/md']), paddingRight: bound(S['space/inset/md']), paddingTop: bound(S['space/inset/md']), paddingBottom: bound(S['space/inset/md']), itemSpacing: bound(S['space/inset/sm']), topLeftRadius: bound(S['radius/md']) }, fills: [solid('#F8F9FA')], strokes: [solid('#E7E4DC')] })); plant('colors', 'variant=info'); plant('colors', 'variant=info');
 const a2title = add(a2, node('TEXT', 'title', { fontName: { family: 'Inter', style: 'Semi Bold' }, fontSize: 14, textStyleId: '', boundVariables: { fontSize: bound(P['font-size/300']), fontFamily: bound(P['font-family/sans']), fontWeight: bound(P['font-weight/semibold']) }, fills: [solid('#212529')] })); plant('text', 'title'); plant('colors', 'title');
-const chip = add(f.page, node('COMPONENT', 'Chip', { layoutMode: 'HORIZONTAL', paddingLeft: 8, paddingRight: 8, paddingTop: 4, paddingBottom: 4, itemSpacing: 0, cornerRadius: 12, description: 'Chip: a compact label for filters and tags. Not for actions, use Button.', documentationLinks: [{ uri: 'https://example.com/chip' }], boundVariables: { paddingLeft: bound(S['space/inset/sm']), paddingRight: bound(S['space/inset/sm']) }, fills: [pb('#2F6BFF', P['color/blue/500'])] }));
-plant('semantic-on-layers', 'Chip'); plant('radius', 'Chip'); plant('spacing', 'Chip');
+const chip = add(f.page, node('COMPONENT', 'Chip', { layoutMode: 'HORIZONTAL', paddingLeft: 8, paddingRight: 8, paddingTop: 4, paddingBottom: 4, itemSpacing: 0, cornerRadius: 12, description: 'Chip: a compact label for filters and tags. Not for actions, use &lt;code&gt;Button&lt;/code&gt;.', documentationLinks: [{ uri: 'https://example.com/chip' }], boundVariables: { paddingLeft: bound(S['space/inset/sm']), paddingRight: bound(S['space/inset/sm']) }, fills: [pb('#2F6BFF', P['color/blue/500'])] }));
+plant('semantic-on-layers', 'Chip'); plant('radius', 'Chip'); plant('spacing', 'Chip'); plant('desc-plain', 'Chip');
 add(chip, node('TEXT', 'label', { textStyleId: caption.id, fills: [pb('#FFFFFF', S['color/content/on-brand'])] }));
-const pattern = add(f.page, node('FRAME', 'Pattern / Empty state', { layoutMode: 'VERTICAL', paddingLeft: 24, paddingRight: 24, paddingTop: 24, paddingBottom: 24, itemSpacing: 16, boundVariables: { paddingLeft: bound(S['space/stack/lg']), paddingRight: bound(S['space/stack/lg']), paddingTop: bound(S['space/stack/lg']), paddingBottom: bound(S['space/stack/lg']), itemSpacing: bound(S['space/inset/md']) }, fills: [pb('#FFFFFF', S['color/background/surface'])] }));
-const loose = add(pattern, node('FRAME', 'Frame 12', { layoutMode: 'NONE', fills: [] })); plant('layout', 'Frame 12'); plant('names', 'Frame 12');
+const pattern = add(f.page, node('FRAME', 'Pattern / Empty state', { layoutMode: 'VERTICAL', effects: [{ type: 'DROP_SHADOW', visible: true }], effectStyleId: '', paddingLeft: 24, paddingRight: 24, paddingTop: 24, paddingBottom: 24, itemSpacing: 16, boundVariables: { paddingLeft: bound(S['space/stack/lg']), paddingRight: bound(S['space/stack/lg']), paddingTop: bound(S['space/stack/lg']), paddingBottom: bound(S['space/stack/lg']), itemSpacing: bound(S['space/inset/md']) }, fills: [pb('#FFFFFF', S['color/background/surface'])] }));
+const loose = add(pattern, node('FRAME', 'Frame 12', { layoutMode: 'NONE', fills: [] })); plant('layout', 'Frame 12'); plant('names', 'Frame 12'); plant('effects', 'Pattern / Empty state');
 add(loose, node('TEXT', 'Heading', { textStyleId: titleSm.id, fills: [pb('#212529', S['color/content/default'])] })); add(loose, node('RECTANGLE', 'Rectangle 4', { fills: [pb('#E7E4DC', S['color/border/subtle'])] })); plant('names', 'Rectangle 4');
 add(pattern, node('TEXT', 'hint', { textStyleId: caption.id, fills: [solid('#BBBBBB')] })); plant('contrast', 'hint'); plant('colors', 'hint');
 const inst = add(pattern, node('INSTANCE', 'Button', { layoutMode: 'HORIZONTAL', fills: [pb('#2F6BFF', S['color/background/brand'])] })); add(inst, node('TEXT', 'label', { fills: [solid('#FFFFFF')] })); // raw inside instance: not ours
 
+// A Cover page with loose docs: skipped on whole-file scope
+const cover = f.addPage('Cover'); const cf = add(cover, node('FRAME', 'Frame 1', { layoutMode: 'NONE', fills: [solid('#123456')] })); add(cf, node('TEXT', 'Text 1')); add(cf, node('TEXT', 'Text 2'));
 // ---------------------------------------------------------------------------
-f.select(f.page.children.find(n => n.name === 'Button')); // selection scope first, then page
+f.select(f.page.children.find(n => n.name === 'Button'));
 (async () => {
   const ctx = load(f);
-  const r = await ctx.runAudit('page');
+  const r = await ctx.runAudit('file');
   const found = [];
   r.steps.forEach(st => st.checks.forEach(c => c.items.forEach(it => found.push({ check: c.key, name: it.name || it.propName || '' , propName: it.propName, value: it.value }))));
   const key = x => x.check + ' :: ' + (x.propName && x.check === 'props' ? x.propName : x.check === 'values' ? x.value : x.name);

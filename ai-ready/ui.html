@@ -290,7 +290,7 @@
   // ---------------------------------------------------------------------------
   // State and helpers
   // ---------------------------------------------------------------------------
-  var VERSION = '0.10.1 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
+  var VERSION = '0.10.2 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
   var FEEDBACK_EMAIL = 'hello@moonlearning.io'; // beta feedback address; shown in the banner and in the report
   var state = { scope: 'selection', result: null, step: 0, checklist: {}, done: {}, sel: null, pending: {}, expanded: {} };
   var STEPS = ['overview', 'variables', 'styles', 'components', 'layers', 'checklist', 'report'];
@@ -539,6 +539,7 @@
       h += '<div class="empty">No variables in this file, and none from a library. Variables are the tokens an agent maps to code, so this is the first thing to set up. Start with a primitives collection (colours, numbers) and a semantic one that aliases it.</div>';
     }
     if (st.key === 'layers') {
+      if (st.meta && st.meta.skippedPages && st.meta.skippedPages.length) h += '<p class="hint" style="margin:0 0 8px">Documentation pages skipped on whole-file runs: ' + esc(st.meta.skippedPages.join(', ')) + '. Run them with the Page scope if you want them checked.</p>';
       var tok = 0, raw = 0; st.checks.forEach(function (c) { if (['colors', 'text', 'radius', 'spacing'].indexOf(c.key) < 0) return; tok += c.pass; raw += remaining(c); });
       var sw = state.result.scope === 'selection' ? 'your selection' : state.result.scope === 'page' ? 'this page' : 'the file';
       h += '<div class="tip" role="note"><span class="lbl">Agent view</span><span>In ' + sw + ' an agent reads <b>' + tok + ' value' + (tok === 1 ? '' : 's') + ' by token name</b>' + (raw ? ' and has to <b>guess ' + raw + '</b> that are raw numbers or colours. Every guess is a place where its code and your design drift apart.' : '. Nothing to guess here.') + '</span></div>';
@@ -632,6 +633,13 @@
           break;
         case 'values':
           r2 = '<span class="tagchip">' + esc(it.propName) + ' = ' + esc(it.value) + '</span><span class="hint">rename in the property panel</span>' + selBtn;
+          break;
+        case 'desc-plain':
+          r2 = '<button class="btn" data-act="clean-description" data-token="' + t + '">' + (done ? 'Cleaned ✓' : 'Clean up') + '</button>' + selBtn;
+          sel = '<div class="edu" style="margin-top:6px"><b>Now:</b> ' + esc((it.descText || '').slice(0, 160)) + ((it.descText || '').length > 160 ? '…' : '') + '<br><b>After:</b> ' + esc((it.cleaned || '').slice(0, 160)) + ((it.cleaned || '').length > 160 ? '…' : '') + '</div>';
+          break;
+        case 'effects':
+          r2 = (it.candidates && it.candidates.length ? candSelect(it.candidates, 'cand') + '<button class="btn" data-act="apply-effect-style" data-token="' + t + '">' + (done ? 'Applied ✓' : 'Apply style') + '</button>' : '<span class="hint">no effect styles in this file</span>') + selBtn;
           break;
         case 'docs-link':
           r2 = '<input type="url" class="dl" placeholder="https://…" aria-label="Documentation link"><button class="btn" data-act="set-doc-link" data-token="' + t + '">' + (done ? 'Done ✓' : 'Add link') + '</button>' + selBtn;
@@ -851,6 +859,8 @@
       case 'bind-radius': { var rid = cand(); if (!rid) return; fix('bind-radius', { nodeId: it.id, variableId: rid }, t, el); return; }
       case 'bind-spacing': { var b = (it.fields || []).filter(function (f) { return f.candidates && f.candidates.length; }).map(function (f) { return { field: f.field, variableId: f.candidates[0].id }; }); if (!b.length) return; fix('bind-spacing', { nodeId: it.id, bindings: b }, t, el); return; }
       case 'apply-text-style': { var sid = cand(); if (!sid) return; fix('apply-text-style', { nodeId: it.id, styleId: sid }, t, el); return; }
+      case 'apply-effect-style': { var eid = cand(); if (!eid) return; fix('apply-effect-style', { nodeId: it.id, styleId: eid }, t, el); return; }
+      case 'clean-description': fix('clean-description', { nodeId: it.id }, t, el, 'Description cleaned'); return;
       case 'rename-node': { var nn = val('.nn'); if (!nn) return; fix('rename-node', { nodeId: it.id, name: nn }, t, el); return; }
       case 'batch-scopes': case 'batch-syntax': {
         if (el.dataset.arm !== '1') { el.dataset.arm = '1'; el.dataset.orig = el.textContent; el.textContent = 'Click again to confirm'; setTimeout(function () { if (el.dataset.arm === '1') { el.dataset.arm = ''; el.textContent = el.dataset.orig; } }, 4000); return; }

@@ -75,6 +75,13 @@ function isDrawing(node) {
   }
   return true;
 }
+var ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026', rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c' };
+function plainText(str) {
+  function decode(t) { return t.replace(/&#x([0-9a-f]+);/gi, function (m, h) { return String.fromCharCode(parseInt(h, 16)); }).replace(/&#(\d+);/g, function (m, d) { return String.fromCharCode(parseInt(d, 10)); }).replace(/&([a-z]+);/gi, function (m, n) { return ENTITIES[n.toLowerCase()] !== undefined ? ENTITIES[n.toLowerCase()] : m; }); }
+  function strip(t) { return t.replace(/<br\s*\/?>/gi, '\n').replace(/<\/?(p|li|div|h[1-6])[^>]*>/gi, '\n').replace(/<\/?[a-z][a-z0-9]*(\s[^>]*)?>/gi, ''); }
+  // tags first, then codes, then tags again: an imported description often carries both (&lt;b&gt; and <b>)
+  return strip(decode(strip(String(str)))).replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
 function hasAncestorOfType(node, type) {
   var p = node.parent;
   while (p && p.type !== 'PAGE' && p.type !== 'DOCUMENT') { if (p.type === type) return true; p = p.parent; }
@@ -84,9 +91,10 @@ function hasAncestorOfType(node, type) {
 // ---------------------------------------------------------------------------
 // Scope
 // ---------------------------------------------------------------------------
+var DOC_PAGE = /^(cover|readme|read me|foundations?|docs?|documentation|changelog|getting started|about|thumbnail|-+|—+|_+|•+)$/i;
 async function collectScope(scope) {
-  var roots = [];
-  if (scope === 'file') { await figma.loadAllPagesAsync(); roots = figma.root.children.slice(); }
+  var roots = [], skippedPages = [];
+  if (scope === 'file') { await figma.loadAllPagesAsync(); roots = figma.root.children.filter(function (p) { if (DOC_PAGE.test(String(p.name).trim())) { skippedPages.push(p.name); return false; } return true; }); }
   else if (scope === 'page') { roots = [figma.currentPage]; }
   else {
     var sel = figma.currentPage.selection;
@@ -105,7 +113,7 @@ async function collectScope(scope) {
     if (n.type === 'COMPONENT') return !(n.parent && n.parent.type === 'COMPONENT_SET');
     return false;
   });
-  return { all: all, components: components };
+  return { all: all, components: components, skippedPages: skippedPages };
 }
 
 // ---------------------------------------------------------------------------
@@ -309,8 +317,9 @@ async function runAudit(scope) {
   if (scoped.error) return scoped;
   var all = scoped.all, components = scoped.components;
   var V = await loadVariables();
-  var textStyles = [];
+  var textStyles = [], effectStyles = [];
   try { textStyles = await figma.getLocalTextStylesAsync(); } catch (e) {}
+  try { effectStyles = await figma.getLocalEffectStylesAsync(); } catch (e) {}
   // Styles from libraries are not local, but the layers that use them carry the style id. Count those too,
   // so a file built on a shared library is not treated as "no text styles".
   var remoteStyles = [], seenStyle = {};
@@ -329,8 +338,8 @@ async function runAudit(scope) {
 
   // How much each check weighs in its step's score. Colours and descriptions are what an agent
   // reads first, so a file with raw colours cannot score well on Layers however tidy its radii are.
-  var CHECK_WEIGHT = { colors: 3, 'semantic-on-layers': 2, text: 2, radius: 1, spacing: 1, layout: 1, names: 1,
-    desc: 3, 'desc-rich': 1, props: 2, values: 1, states: 1, 'docs-link': 0.5, 'comp-layout': 1, hidden: 0.5,
+  var CHECK_WEIGHT = { colors: 3, 'semantic-on-layers': 2, text: 2, radius: 1, spacing: 1, layout: 1, names: 1, effects: 0.5,
+    desc: 3, 'desc-rich': 1, 'desc-plain': 1, props: 2, values: 1, states: 1, 'docs-link': 0.5, 'comp-layout': 1, hidden: 0.5,
     split: 2, 'semantic-naming': 2, scopes: 2, 'code-syntax': 2, 'var-desc': 1, 'hide-primitives': 1, modes: 0.5, 'naming-style': 0.5,
     'text-styles-exist': 3, 'text-styles-bound': 1, 'text-style-desc': 0.5 };
   function mkCheck(key, label, severity, why, fix, opts) {
@@ -344,7 +353,7 @@ async function runAudit(scope) {
   function varItem(v, extra) { var it = { kind: 'variable', id: v.id, name: v.name, collection: v.collectionName, type: v.type }; if (extra) Object.keys(extra).forEach(function (k) { it[k] = extra[k]; }); return it; }
 
   // ---------------- Step 1: Variables (file-wide) ----------------
-  var vSplit = mkCheck('split', 'Primitives and semantics are separate', 'warn',
+  var vSplit = mkCheck('split', 'Primitives and semantics are separate', 'info',
     'Primitives are the raw palette: color/blue/500, space/4. Semantics say what a value is for: color/background/brand, space/inset/md. Semantic tokens point to primitives (an alias). An agent that reads color/background/brand knows the intent and can map it to the code token of the same name. A raw color/blue/500 on a layer tells it nothing about why.',
     'Create one collection for primitives (raw values) and one for semantics (aliases to primitives). Layers use semantics only.', { unit: 'collection' });
   var vNaming = mkCheck('semantic-naming', 'Semantic tokens are named for their use', 'warn',
@@ -377,10 +386,11 @@ async function runAudit(scope) {
     colorCols.forEach(function (c) {
       var ok = c.kind !== 'mixed' && (hasPrim && hasSem || (c.kind === 'semantic'));
       if (c.kind === 'mixed') {
+        var isType = /typo|font|text/i.test(c.name);
         var rawNames = [], aliasNames = [];
         Object.keys(V.info).forEach(function (id) { var vi = V.info[id]; if (vi.collectionId !== c.id) return; (vi.isAlias ? aliasNames : rawNames).push(vi.name); });
         F(vSplit, { kind: 'collection', id: c.id, name: c.name, note: c.alias + ' aliases and ' + c.raw + ' raw values in one collection', raw: rawNames.sort().slice(0, 80), aliases: aliasNames.sort().slice(0, 80),
-          manual: 'No button for this one: Figma does not let a plugin move a variable between collections. By hand, in the variable panel: move the ' + c.raw + ' raw values into their own primitives collection and keep the ' + c.alias + ' aliases here. Polish, not urgent.' });
+          manual: isType ? 'Raw sizes and composed type tokens share this collection. That is fine as long as your text styles are built from it and layers use the styles. Split it only if designers bind these raw sizes to layers directly. No button: Figma does not let a plugin move variables between collections.' : 'No button for this one: Figma does not let a plugin move a variable between collections. By hand, in the variable panel: move the ' + c.raw + ' raw values into their own primitives collection and keep the ' + c.alias + ' aliases here.' });
       }
       else if (!ok) F(vSplit, { kind: 'collection', id: c.id, name: c.name, note: c.kind === 'primitive' ? 'Only raw values, and no semantic collection points at them' : 'Semantic collection without a primitive one' });
       else P(vSplit);
@@ -464,6 +474,9 @@ async function runAudit(scope) {
   var cDocs = mkCheck('docs-link', 'Components link to their docs', 'info',
     'A documentation link on the component points straight at the page that explains the rules, in Storybook, Zeroheight or a wiki. An agent that can follow links gets the full story, not the summary.',
     'Add the link under the component description in the right panel, or paste it here.', { unit: 'component', caveat: 'This only checks that a link exists, not that it points to the right page.' });
+  var cPlain = mkCheck('desc-plain', 'Descriptions are plain text', 'warn',
+    'A description with HTML codes in it, like &lt;code&gt; or <b>, is read by an agent exactly like that: as the characters, not as formatting. It then quotes or copies them. Descriptions that came in through an import or a sync tool often carry these.',
+    'Clean the description to plain text. The button decodes the codes and removes the tags; the words stay.', { unit: 'component' });
   var cHidden = mkCheck('hidden', 'No hidden layers inside components', 'info',
     'Hidden layers are still in the file. An agent reading the structure sees them and may build them. If a layer is a leftover, delete it. If it is a real option, make it a boolean property instead. Layers whose visibility is bound to a boolean property, or that are visible in another variant of the same set, are states and are not counted here.',
     'Delete leftover hidden layers, or turn optional parts into a boolean property.', { unit: 'layer' });
@@ -475,7 +488,8 @@ async function runAudit(scope) {
     var desc = ''; try { desc = comp.description || ''; } catch (e) {}
     var cp = componentProps(comp);
     var base = { props: cp.props, variants: cp.variants, isSet: comp.type === 'COMPONENT_SET', descText: desc };
-    if (isEmpty(desc)) F(cDesc, nodeItem(comp, base)); else { P(cDesc); if (desc.trim().length >= 40) P(cRich); else F(cRich, nodeItem(comp, base)); }
+    if (isEmpty(desc)) F(cDesc, nodeItem(comp, base)); else { P(cDesc); if (desc.trim().length >= 40) P(cRich); else F(cRich, nodeItem(comp, base));
+      if (/&[a-z#0-9]+;|<\/?[a-z][a-z0-9]*(\s[^>]*)?>/i.test(desc)) F(cPlain, nodeItem(comp, { descText: desc, cleaned: plainText(desc) })); else P(cPlain); }
     cp.keys.forEach(function (k) {
       if (DEFAULT_PROP.test(k.name)) F(cProps, nodeItem(comp, { propKey: k.key, propName: k.name, propType: k.type })); else P(cProps);
     });
@@ -515,7 +529,7 @@ async function runAudit(scope) {
   if (cHidden.total === 0 && components.length) { cHidden.pass = 1; cHidden.total = 1; }
   var stepComponents = { key: 'components', label: 'Components', weight: 30,
     what: 'Components are what an agent reuses. This step checks the context it reads first: descriptions, property names, variant values, states and docs links.',
-    checks: [cDesc, cRich, cProps, cValues, cStates, cDocs, cLayout, cHidden], meta: { componentCount: components.length } };
+    checks: [cDesc, cRich, cPlain, cProps, cValues, cStates, cDocs, cLayout, cHidden], meta: { componentCount: components.length } };
 
   // ---------------- Step 4: Layers (scoped) ----------------
   var lColor = mkCheck('colors', 'Colours come from variables or styles', 'warn',
@@ -539,6 +553,9 @@ async function runAudit(scope) {
   var lName = mkCheck('names', 'Layers have meaningful names', 'info',
     'Layer names are the hooks an agent uses to understand structure: "Card / Header" says what a frame is, "Frame 12" says nothing. Names that match the code\'s parts (header, body, actions) are best.',
     'Rename after the role the layer plays. You can rename right here.', { unit: 'layer' });
+  var lEffects = mkCheck('effects', 'Shadows and blurs use effect styles', 'info',
+    'An effect style is a named shadow an agent can map to an elevation token in code. A raw shadow is six numbers it has to copy.',
+    'Apply one of your effect styles, or create one from this effect and apply it.', { unit: 'layer' });
   var lContrast = mkCheck('contrast', 'Text contrast (not scored)', 'note',
     'Contrast is something only the design can fix. An agent will faithfully copy a colour pair that fails. This is a conservative estimate: text against the nearest solid background, WCAG AA.',
     'Darken the text or lighten the background until it reaches at least 4.5:1 (3:1 for text 24px and up).', { unit: 'layer' });
@@ -559,6 +576,7 @@ async function runAudit(scope) {
       var hasStyle = styleId && styleId !== figma.mixed && styleId !== '';
       paints.forEach(function (p, idx) {
         if (p.type !== 'SOLID' && !(p.type && p.type.indexOf('GRADIENT') === 0)) return;
+        if (typeof p.opacity === 'number' && p.opacity <= 0.001) return; // a transparent stroke or fill is a spacer, not a colour
         var bound = p.boundVariables && p.boundVariables.color;
         if (hasStyle || (bound && p.type !== 'SOLID')) { P(lColor); return; }
         if (bound) {
@@ -617,6 +635,10 @@ async function runAudit(scope) {
         }
       } catch (e) {}
     }
+    // effects
+    if (effectStyles.length && !inInstance && 'effects' in node && Array.isArray(node.effects) && node.effects.some(function (e) { return e && e.visible !== false; })) {
+      var es = node.effectStyleId; if (es && es !== figma.mixed && es !== '') P(lEffects); else F(lEffects, nodeItem(node, { candidates: effectStyles.slice(0, 6).map(function (x) { return { id: x.id, name: x.name }; }) }));
+    }
     // auto-layout
     if ((node.type === 'FRAME' || node.type === 'COMPONENT') && 'children' in node && node.children && node.children.length > 1 && !inInstance && !isDrawing(node)) {
       if (node.layoutMode && node.layoutMode !== 'NONE') P(lLayout); else F(lLayout, nodeItem(node, { count: node.children.length }));
@@ -628,7 +650,7 @@ async function runAudit(scope) {
   });
   var stepLayers = { key: 'layers', label: 'Layers', weight: 30,
     what: 'Layers are where tokens get used. This step checks that colours, radius, spacing and type point at variables and styles, that containers use auto-layout, and that names mean something.',
-    checks: [lColor, lPrim, lText, lRadius, lSpace, lLayout, lName, lContrast] };
+    checks: [lColor, lPrim, lText, lRadius, lSpace, lLayout, lName, lEffects, lContrast], meta: { skippedPages: scoped.skippedPages || [] } };
 
   // ---------------- Scores ----------------
   var steps = [stepVariables, stepStyles, stepComponents, stepLayers];
@@ -802,6 +824,8 @@ var FIX = {
     n.editComponentProperty(str(m.propKey || '', LIMITS.name), { name: name });
   },
   'apply-description': async function (m) { var n = await getComponent(m.nodeId); n.description = str(m.text || '', LIMITS.text); },
+  'clean-description': async function (m) { var n = await getComponent(m.nodeId); n.description = plainText(n.description || ''); },
+  'apply-effect-style': async function (m) { var n = await getNode(m.nodeId); var s = await figma.getStyleByIdAsync(reqId(m.styleId, 'style')); if (!s || s.type !== 'EFFECT') throw new Error('Effect style not found.'); if (!('setEffectStyleIdAsync' in n)) throw new Error('This layer cannot take an effect style.'); await n.setEffectStyleIdAsync(s.id); },
   'set-doc-link': async function (m) {
     var n = await getComponent(m.nodeId), uri = str(m.uri || '', LIMITS.uri).trim();
     if (!/^https?:\/\/\S+$/i.test(uri)) throw new Error('The link must start with http:// or https://');

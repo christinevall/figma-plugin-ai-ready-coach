@@ -45,6 +45,8 @@ class File {
     });
     col.variableIds.push(v.id); this.variables.push(v); return v;
   }
+  effectStyle(name) { const s = { id: 'S:' + id(), type: 'EFFECT', name, description: '', boundVariables: {}, remote: false }; this.effectStyles = this.effectStyles || []; this.effectStyles.push(s); this.stylesById[s.id] = s; return s; }
+  addPage(name) { const pg = node('PAGE', name, { children: [], selection: [] }); pg.parent = this.root; this.root.children.push(pg); return pg; }
   textStyle(name, family, style, size, opts = {}) {
     const s = { id: 'S:' + id(), type: 'TEXT', name, fontName: { family, style }, fontSize: size, description: opts.description || '', boundVariables: opts.boundVariables || {}, remote: !!opts.remote };
     if (!opts.remote) this.textStyles.push(s); this.stylesById[s.id] = s; return s;
@@ -61,7 +63,7 @@ class File {
     };
     this.libs.push(lib); return lib;
   }
-  index() { const walk = n => { this.nodesById[n.id] = n; (n.children || []).forEach(walk); }; walk(this.page); }
+  index() { const walk = n => { this.nodesById[n.id] = n; (n.children || []).forEach(walk); }; this.root.children.forEach(walk); }
   select(...nodes) { this.page.selection = nodes; }
   figma() {
     const self = this; this.index();
@@ -89,6 +91,7 @@ class File {
         setBoundVariableForPaint(paint, field, v) { const p = JSON.parse(JSON.stringify(paint)); p.boundVariables = { [field]: { type: 'VARIABLE_ALIAS', id: v.id } }; return p; }
       },
       async getLocalTextStylesAsync() { return self.textStyles; },
+      async getLocalEffectStylesAsync() { return self.effectStyles || []; },
       async getStyleByIdAsync(sid) { return self.stylesById[sid] || null; },
       async getNodeByIdAsync(nid) { return self.nodesById[nid] || null; },
       async loadFontAsync() {}
