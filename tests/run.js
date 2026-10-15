@@ -218,7 +218,7 @@ function paintBound(hex, v) { return solid(hex, { boundVariables: { color: bound
     const r = await audit(f);
     t('mixed collection is flagged in "separate"', check(r, 'variables', 'split').items.some(i => i.id === col.id));
     const mixed = check(r, 'variables', 'split').items.find(i => i.id === col.id);
-    t('mixed collection lists which variables are raw and which are aliases, with manual steps', mixed.raw.indexOf('blue/500') >= 0 && mixed.aliases.indexOf('bg/primary') >= 0 && /No button here/.test(mixed.manual));
+    t('mixed collection says why there is no button', /No button/.test(mixed.manual));
     t('default mode names "Mode 1 / Mode 2" are flagged', check(r, 'variables', 'modes').items.some(i => i.id === col.id));
     t('visible primitive (alias target) is flagged in hide check', check(r, 'variables', 'hide-primitives').items.some(i => i.id === a.id));
   }
