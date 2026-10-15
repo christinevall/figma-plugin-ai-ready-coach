@@ -370,7 +370,12 @@ async function runAudit(scope) {
     var hasPrim = colorCols.some(function (c) { return c.kind === 'primitive'; }), hasSem = colorCols.some(function (c) { return c.kind === 'semantic'; });
     colorCols.forEach(function (c) {
       var ok = c.kind !== 'mixed' && (hasPrim && hasSem || (c.kind === 'semantic'));
-      if (c.kind === 'mixed') F(vSplit, { kind: 'collection', id: c.id, name: c.name, note: c.alias + ' aliases and ' + c.raw + ' raw values in one collection' });
+      if (c.kind === 'mixed') {
+        var rawNames = [], aliasNames = [];
+        Object.keys(V.info).forEach(function (id) { var vi = V.info[id]; if (vi.collectionId !== c.id) return; (vi.isAlias ? aliasNames : rawNames).push(vi.name); });
+        F(vSplit, { kind: 'collection', id: c.id, name: c.name, note: c.alias + ' aliases and ' + c.raw + ' raw values in one collection', raw: rawNames.sort().slice(0, 80), aliases: aliasNames.sort().slice(0, 80),
+          manual: 'No button here: Figma does not let a plugin move a variable to another collection, and recreating them would break every file that uses this library. By hand, in the variable panel: 1. create a collection "' + c.name + ' primitives". 2. Recreate the ' + c.raw + ' raw values there (same names). 3. Point each of the ' + c.alias + ' aliases at the new primitive. 4. Delete the old raw values. Then run the check again.' });
+      }
       else if (!ok) F(vSplit, { kind: 'collection', id: c.id, name: c.name, note: c.kind === 'primitive' ? 'Only raw values, and no semantic collection points at them' : 'Semantic collection without a primitive one' });
       else P(vSplit);
       var badModes = c.modes.filter(function (m) { return DEFAULT_MODE.test(m.name); });

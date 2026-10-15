@@ -287,7 +287,7 @@
   // ---------------------------------------------------------------------------
   // State and helpers
   // ---------------------------------------------------------------------------
-  var VERSION = '0.9.17 · 2026-09-18'; // bump on every change, so testers and reports say which build ran
+  var VERSION = '0.9.18 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
   var FEEDBACK_EMAIL = 'hello@moonlearning.io'; // beta feedback address; shown in the banner and in the report
   var state = { scope: 'selection', result: null, step: 0, checklist: {}, done: {}, sel: null, pending: {}, expanded: {} };
   var STEPS = ['overview', 'variables', 'styles', 'components', 'layers', 'checklist', 'report'];
@@ -592,7 +592,12 @@
       else r2 = '<span class="hint">' + esc(it.note || '') + '</span>';
     } else if (it.kind === 'collection') {
       nm = '<span class="nm">' + esc(it.name) + '</span>';
-      r2 = '<span class="hint">' + esc(it.note || '') + ' · fix this in the variable panel</span>';
+      r2 = '<span class="hint">' + esc(it.note || '') + (it.manual ? '' : ' · fix this in the variable panel') + '</span>';
+      if (it.manual) {
+        sel = '<p class="hint" style="margin:6px 0 0;line-height:1.5">' + esc(it.manual) + '</p>';
+        if (it.raw && it.raw.length) sel += '<details class="scaffold"><summary>The ' + it.raw.length + ' raw values (these are the primitives)</summary><div class="rows">' + it.raw.map(function (n) { return '<div class="row"><div class="r1"><span class="nm">' + esc(n) + '</span></div></div>'; }).join('') + '</div></details>';
+        if (it.aliases && it.aliases.length) sel += '<details class="scaffold"><summary>The ' + it.aliases.length + ' aliases (these stay semantic)</summary><div class="rows">' + it.aliases.map(function (n) { return '<div class="row"><div class="r1"><span class="nm">' + esc(n) + '</span></div></div>'; }).join('') + '</div></details>';
+      }
     } else if (it.kind === 'style') {
       nm = '<span class="nm">' + esc(it.name) + '<small>text style</small></span>';
       if (c.key === 'text-style-desc') r2 = '<input type="text" class="sd" placeholder="Where it belongs, where it does not" aria-label="Description"><button class="btn" data-act="set-style-desc" data-token="' + t + '">' + (done ? 'Done ✓' : 'Apply') + '</button>';
