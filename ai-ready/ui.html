@@ -174,7 +174,22 @@
   .row .hint { font-size: 11px; color: var(--muted); }
   .tagchip { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--line-2); color: var(--ink-soft); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .more { font-size: 11px; color: var(--muted); padding: 6px 0 0; }
+  .setup { display: flex; gap: 10px; align-items: flex-start; background: var(--card); border: 1.5px solid var(--accent); border-radius: 10px; padding: 11px 13px; margin: 10px 0 8px; font-size: 12px; line-height: 1.5; color: var(--ink-soft); }
+  .setup .lbl { flex: none; font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-text); margin-top: 3px; }
+  .setup b { color: var(--ink); font-weight: 600; } .setup i { font-style: normal; font-weight: 600; color: var(--ink); }
+  .setup ol { margin: 6px 0 4px; padding-left: 18px; } .setup li { margin-bottom: 4px; }
+  .setup .batch { margin-top: 8px; }
   .edu { display: block; flex-basis: 100%; font-size: 10.5px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+  .ba { flex-basis: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; font-size: 11px; color: var(--ink-soft); line-height: 1.4; background: var(--paper); border: 1px solid var(--line-2); border-radius: 7px; padding: 7px 9px; }
+  .ba .tl { display: block; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+  .ba code { font-size: 10px; word-break: break-all; }
+  .row .r2 .val { flex: 1 1 100%; order: 1; }
+  .row .r2 select.cand { flex: 1 1 60%; order: 2; }
+  .row .r2 .btn { order: 3; } .row .r2 .btn.quiet { order: 4; }
+  .row .r2 .hint { order: 1; }
+  .row .r2 .ba { order: 8; } .row .r2 .edu { order: 9; }
+  .css { background: #1d1d2b; color: #f4f3ef; border-radius: 8px; padding: 9px 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; line-height: 1.55; overflow-x: auto; white-space: pre; margin: 6px 0 10px; }
+  .css .c { color: #9a9ab0; } .css .o { color: #ffb08a; }
   .edu code { font-size: 10px; }
   .edu b { color: var(--ink-soft); font-weight: 600; }
 
@@ -306,7 +321,7 @@
   // ---------------------------------------------------------------------------
   // State and helpers
   // ---------------------------------------------------------------------------
-  var VERSION = '0.11.2 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
+  var VERSION = '0.12.0 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
   var FEEDBACK_EMAIL = 'hello@moonlearning.io'; // beta feedback address; shown in the banner and in the report
   var state = { scope: 'selection', result: null, step: 0, checklist: {}, done: {}, sel: null, pending: {}, expanded: {}, lessons: {}, read: {} };
   var STEPS = ['overview', 'variables', 'styles', 'components', 'layers', 'checklist', 'report'];
@@ -644,7 +659,7 @@
   function stepHTML(st) {
     if (!st) return '';
     var note = st.note; if ((st.key === 'variables' || st.key === 'styles') && state.result && state.result.scope === 'selection') note = 'File-wide station: nothing here is about your selection. The connections for your selection are on the Overview and in Layers. ' + (st.note || '');
-    var h = stepHeader(st.label, st.what, note, st.score) + whyHTML(st.key, true);
+    var h = stepHeader(st.label, st.what, note, st.score) + (st.key === 'variables' || st.key === 'styles' ? setupCard(st.key) : '') + whyHTML(st.key, true);
     if (st.key === 'variables' && st.meta && st.meta.collections && st.meta.collections.length) {
       h += '<p class="lead">Your collections</p><div class="rows" style="margin-bottom:10px">';
       st.meta.collections.forEach(function (c) {
@@ -707,10 +722,11 @@
   }
   // One line that says what an agent does with this layer before and after the fix.
   function eduLine(it) {
-    var c = it.candidates && it.candidates[0];
-    if (!c) return '<span class="edu">Agent writes the raw value, because no token has it. Add a token for this value, or change the value to one you have.</span>';
-    var after = c.code ? '<code>' + esc(c.code) + '</code>' : '<b>' + esc(c.name) + '</b>' + (c.semantic ? '' : ' (a primitive; prefer a semantic token)');
-    return '<span class="edu">Agent writes: <code>' + esc((it.value || it.bound || '').split(' ')[0]) + '</code> hard-coded → after binding: ' + after + '.</span>';
+    var c = it.candidates && it.candidates[0], raw = esc((it.value || it.bound || '').split(' ')[0]);
+    if (!c) return '<div class="ba"><div><span class="tl">Agent writes now</span><code>' + raw + '</code> hard-coded</div><div><span class="tl">No match</span>No token has this value. Add one, or change the value to one you have.</div></div>';
+    var after = c.code ? '<code>var(' + esc(c.code) + ')</code>' : '<b>' + esc(c.name) + '</b>' + (c.semantic ? '' : ' (a primitive; prefer a semantic token)');
+    var chain = (c.via ? esc(c.name) + ' → ' + esc(c.via) + ' → ' : esc(c.name) + ' → ') + raw + (c.mode ? ' in ' + esc(c.mode) : '');
+    return '<div class="ba"><div><span class="tl">Agent writes now</span><code>' + raw + '</code> hard-coded</div><div><span class="tl">After binding</span>' + after + '</div></div><span class="edu">Why this match: ' + chain + '.</span>';
   }
   function candSelect(cands, cls) {
     if (!cands || !cands.length) return '';
@@ -812,6 +828,7 @@
     var h = '<div class="score-card"><div class="ring"><svg width="78" height="78"><circle cx="39" cy="39" r="33" fill="none" stroke="#ece8df" stroke-width="7"/><circle cx="39" cy="39" r="33" fill="none" stroke="' + col + '" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + circ + '" stroke-dashoffset="' + off + '"/></svg><div class="num"><b>' + d.overall + '</b><small>/ 100</small></div></div>';
     h += '<div class="score-meta"><h2>' + verdict(d.overall) + '</h2><p>' + esc(d.fileName) + ' · ' + plural(d.counts.components, 'component') + ' · ' + plural(d.counts.variables, 'variable') + ' · ' + plural(d.counts.nodes, 'layer') + '</p>';
     h += '<div class="pills"><span class="pill"><span class="d" style="background:var(--crit)"></span>' + d.counts.errors + ' critical</span><span class="pill"><span class="d" style="background:var(--warn)"></span>' + d.counts.warnings + ' worth fixing</span><span class="pill"><span class="d" style="background:var(--info)"></span>' + d.counts.infos + ' polish</span></div></div></div>';
+    h += setupCard('overview');
     // missing connections in this scope: the rows themselves, with one button for all matches
     var TOKEN_CHECKS = ['colors', 'semantic-on-layers', 'text', 'radius', 'spacing'];
     var layersStep = stepByKey('layers'), tokenChecks = layersStep ? layersStep.checks.filter(function (c) { return TOKEN_CHECKS.indexOf(c.key) >= 0 && remaining(c) > 0; }) : [];
@@ -820,6 +837,7 @@
     if (openTok) {
       h += '<p class="lead">Missing connections in ' + scopeWord + '</p>';
       h += '<p class="hero" style="padding:0 0 8px">' + openTok + ' value' + (openTok === 1 ? '' : 's') + ' not connected to a token or style. ' + (matchTok ? matchTok + ' match' + (matchTok === 1 ? 'es' : '') + ' one you already have.' : 'None match a token you have.') + '</p>';
+      h += cssPreview(tokenChecks);
       if (matchTok) h += '<div class="batch"><button class="btn primary" data-act="connect-all">Connect all ' + matchTok + ' match' + (matchTok === 1 ? '' : 'es') + '</button><span class="hint">Semantic tokens first. One Cmd+Z undoes all of it. Run again afterwards to re-score.</span></div>';
       tokenChecks.forEach(function (c) { h += checkHTML(c); });
     } else if (layersStep && layersStep.score !== null) {
@@ -929,6 +947,44 @@
   // ---------------------------------------------------------------------------
   // Actions (one delegated handler)
   // ---------------------------------------------------------------------------
+  // The CSS an agent would write for the flagged layers, before and after binding. A teaching artefact, not real code.
+  function cssPreview(tokenChecks) {
+    var byNode = {}, order = [];
+    tokenChecks.forEach(function (c) { c.items.forEach(function (it) { if (state.done[it._t]) return; var n = byNode[it.id]; if (!n) { n = byNode[it.id] = { name: it.name, props: [] }; order.push(it.id); }
+      var cand = it.candidates && it.candidates[0], after = cand ? (cand.code ? 'var(' + cand.code + ')' : cand.name) : null;
+      if (c.key === 'colors' || c.key === 'semantic-on-layers') n.props.push({ p: it.prop === 'strokes' ? 'border-color' : (it.nodeType === 'TEXT' ? 'color' : 'background'), raw: (it.value || it.bound || '').split(' ')[0], after: after });
+      else if (c.key === 'radius') n.props.push({ p: 'border-radius', raw: it.value + 'px', after: after });
+      else if (c.key === 'text') n.props.push({ p: 'font', raw: String(it.value || '').replace(/ ·.*$/, ''), after: cand ? '/* text style ' + cand.name + ' */' : null });
+      else if (c.key === 'spacing') (it.fields || []).forEach(function (f) { var fc = f.candidates && f.candidates[0]; n.props.push({ p: f.field === 'itemSpacing' ? 'gap' : f.field.replace(/([A-Z])/g, '-$1').toLowerCase(), raw: f.value + 'px', after: fc ? (fc.code ? 'var(' + fc.code + ')' : fc.name) : null }); });
+    }); });
+    if (!order.length) return '';
+    var sel = function (name) { return '.' + String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); };
+    var before = '', after = '', shown = 0;
+    order.slice(0, 4).forEach(function (id) { var n = byNode[id]; var ps = n.props.slice(0, 3); before += sel(n.name) + ' {\n' + ps.map(function (x) { return '  ' + x.p + ': ' + x.raw + ';'; }).join('\n') + '\n}\n'; after += sel(n.name) + ' {\n' + ps.map(function (x) { return '  ' + x.p + ': ' + (x.after ? '<span class="o">' + esc(x.after) + '</span>' : x.raw + ' <span class="c">/* still raw: no token */</span>') + ';'; }).join('\n') + '\n}\n'; shown++; });
+    var more = order.length > shown ? '<span class="c">/* … and ' + (order.length - shown) + ' more layers */</span>\n' : '';
+    return '<details class="scaffold" open><summary>The CSS an agent would write for this (illustrative)</summary><div class="css"><span class="c">/* now: numbers an agent has to copy */</span>\n' + esc(before) + more + '</div><div class="css"><span class="c">/* after binding: your tokens by name */</span>\n' + after + more + '</div></details>';
+  }
+  // Set-up guidance: what to do when there are no tokens, only raw ones, or no text styles.
+  function setupCard(where) {
+    var d = state.result && state.result.setup; if (!d) return '';
+    var h = '';
+    if (where !== 'styles' && d.variables !== 'ok') {
+      var cols = d.rawColors.length;
+      if (d.variables === 'none') h += '<div class="setup"><span class="lbl">Set-up</span><div><b>This file has no variables yet.</b> Every colour and size is a loose number, so an agent has nothing to name and copies the values. Three ways in, from quick to proper:'
+        + '<ol><li><b>Start from what is here.</b> ' + (cols ? 'I found ' + cols + ' distinct raw colours in this scope. One click makes a <i>Primitives (starter)</i> collection with one variable per colour, named by hue and lightness (color/blue/500). Rename them as you go, then bind the layers in the Layers station.' : 'There are no raw colours in this scope to start from; widen the scope to Page or Whole file.') + '</li>'
+        + '<li><b>Have code already?</b> Ask the developer for the token file (usually JSON) and import it with a tokens plugin, so the names match from day one.</li>'
+        + '<li><b>Have a library?</b> Enable it under Assets → Libraries, then run again: its tokens will be offered as matches.</li></ol>'
+        + (cols ? '<div class="batch"><button class="btn primary" data-act="create-primitives">Create ' + cols + ' starter primitives</button><span class="hint">One Cmd+Z removes the collection again.</span></div>' : '') + '</div></div>';
+      else if (d.variables === 'raw-only') h += '<div class="setup"><span class="lbl">Set-up</span><div><b>You have variables, but only raw ones.</b> They name values (blue/500) and not uses, so dark mode, a rebrand or an agent mapping to code has no handle. Next step: add a second collection, <i>Semantic</i>, with a token per use that points at a primitive: color/background/default, color/content/default, color/border/subtle, space/inset/md. Start with the five your layers use most, then bind layers to those instead. No button here on purpose: the names are a design decision, and the lesson above shows the pattern.</div></div>';
+      else if (d.variables === 'library') h += '<div class="setup"><span class="lbl">Set-up</span><div><b>This file takes its tokens from a library.</b> That is the right place for them. Scopes, code names and descriptions are set in the library file; here the Layers station checks that your layers use the library tokens, and offers them as matches.</div></div>';
+    }
+    if (where !== 'variables' && d.styles === 'none') {
+      var fn = d.fonts.length;
+      h += '<div class="setup"><span class="lbl">Set-up</span><div><b>No text styles in this file' + (state.result.steps.find(function (s) { return s.key === 'styles'; }).meta.remoteTextStyles ? '' : ', and none from a library') + '.</b> Every text is a one-off font setting, so an agent reads sizes instead of a scale. ' + (fn ? 'I found ' + fn + ' distinct font settings in this scope. One click makes a text style for each, named by family, size and weight (typography/inter-16-semi-bold). Rename them after their role: body, heading, caption. Then apply them in the Layers station.' : 'Widen the scope to find the fonts in use.')
+        + (fn ? '<div class="batch"><button class="btn primary" data-act="create-text-styles">Create ' + fn + ' starter text styles</button><span class="hint">Cmd+Z removes them again.</span></div>' : '') + '</div></div>';
+    }
+    return h;
+  }
   function hasMatch(c, it) { if (c.key === 'spacing') return (it.fields || []).some(function (f) { return f.candidates && f.candidates.length; }); return !!(it.candidates && it.candidates.length); }
   function batchItemFor(c, it) {
     var r = rowOf(it._t), sel = r && r.querySelector('select.cand'), vid = sel ? sel.value : (it.candidates && it.candidates[0] ? it.candidates[0].id : null);
@@ -1012,6 +1068,14 @@
         el.disabled = true; el.textContent = 'Hiding…';
         state.pending['b' + (++TOK)] = { btn: el, tokens: toks2, check: c2.key };
         send({ type: 'fix', action: 'hide-collection', token: 'b' + TOK, collectionId: el.dataset.col, hidden: true, notify: 'Primitives hidden from publishing' }); return; }
+      case 'create-primitives': {
+        if (el.dataset.arm !== '1') { el.dataset.arm = '1'; el.dataset.orig = el.textContent; el.textContent = 'Click again to create them'; setTimeout(function () { if (el.dataset.arm === '1') { el.dataset.arm = ''; el.textContent = el.dataset.orig; } }, 4000); return; }
+        var cols = state.result.setup.rawColors.map(function (c) { return { hex: c.hex, name: c.name }; }); el.disabled = true; el.textContent = 'Creating…';
+        state.pending['b' + (++TOK)] = { btn: el, tokens: [], rerun: true }; send({ type: 'fix', action: 'create-starter-primitives', token: 'b' + TOK, colors: cols, collectionName: 'Primitives (starter)', notify: cols.length + ' starter primitives created' }); return; }
+      case 'create-text-styles': {
+        if (el.dataset.arm !== '1') { el.dataset.arm = '1'; el.dataset.orig = el.textContent; el.textContent = 'Click again to create them'; setTimeout(function () { if (el.dataset.arm === '1') { el.dataset.arm = ''; el.textContent = el.dataset.orig; } }, 4000); return; }
+        var fonts = state.result.setup.fonts.map(function (f) { return { family: f.family, style: f.style, size: f.size, name: f.name }; }); el.disabled = true; el.textContent = 'Creating…';
+        state.pending['b' + (++TOK)] = { btn: el, tokens: [], rerun: true }; send({ type: 'fix', action: 'create-text-styles', token: 'b' + TOK, fonts: fonts, notify: fonts.length + ' starter text styles created' }); return; }
       case 'connect-all': {
         if (el.dataset.arm !== '1') { el.dataset.arm = '1'; el.dataset.orig = el.textContent; el.textContent = 'Click again to connect them all'; setTimeout(function () { if (el.dataset.arm === '1') { el.dataset.arm = ''; el.textContent = el.dataset.orig; } }, 4000); return; }
         var ls = stepByKey('layers'); if (!ls) return; var items = [], toks = [];
@@ -1083,6 +1147,7 @@
         toks.forEach(function (t) { state.done[t] = true; var r = rowOf(t); if (r) { r.classList.add('done'); var b = r.querySelector('.btn:not(.quiet):not(.primary)'); if (b) { b.textContent = 'Done ✓'; b.disabled = true; } var f = r.querySelector('.descform'); if (f) f.hidden = true; var tb = r.querySelector('[data-act="toggle-desc"]'); if (tb) { tb.textContent = 'Done ✓'; tb.disabled = true; } } });
         if (p.btn && !p.tokens) { p.btn.textContent = p.btn.classList.contains('primary') ? 'Applied ✓' : 'Done ✓'; p.btn.disabled = true; }
         if (p.btn && p.tokens) { p.btn.textContent = 'Done ✓'; }
+        if (p.rerun) { send({ type: 'notify', text: 'Created. Running the check again…' }); send({ type: 'run', scope: state.scope }); return; }
         var keys = {}; toks.forEach(function (t) { keys[t.split(':')[0]] = 1; }); if (p.check) keys[p.check] = 1; (p.checks || []).forEach(function (k) { keys[k] = 1; }); Object.keys(keys).forEach(refreshCheckHeader);
         if (p.tokens && STEPS[state.step] === 'overview') renderStep();
         if (msg.action === 'apply-description' && !p.token) send({ type: 'selection-info' });

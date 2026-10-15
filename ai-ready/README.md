@@ -22,6 +22,10 @@ Every step opens with **Why this matters**, and every check has a **?** that exp
 
 Select a component (or a page, or the whole file) and run. The Overview opens with **Missing connections**: every colour, radius, gap and text in that scope that is not connected to a token or style, each with the matching token you already have, a Bind button, and one line on what an agent writes before and after. **Connect all** binds every match in one undo step. Below that come the other findings by impact, then the stations. The Variables and Styles stations are file-wide and say so when you ran on a selection.
 
+## When nothing is set up yet
+
+The plugin diagnoses the file before it checks it. No variables at all: a set-up card explains the three ways in and offers to create starter primitives from the distinct colours in the scope, named by hue and lightness (color/blue/500), to be renamed later. Variables but only raw ones: the card explains the semantic layer and the five tokens to start with; no button, because those names are a design decision. Tokens from a library: the card says the fixes belong in the library file. No text styles: the card offers to create one style per font setting in use (typography/inter-16-regular), to be renamed after its role. After a starter action the check runs again, so the new tokens appear as matches right away.
+
 ## Certification
 
 `node tests/certify.js` builds a realistic library (primitives, semantics, a typography collection, text styles, Button, Alert, TextField, Toggle, Card, Badge, Chip, icons, a pattern with an instance) with 29 planted problems and requires the audit to report every one of them and nothing else. `tests/run.js` holds the 74 unit cases. Both must pass before a push.

@@ -75,6 +75,33 @@ function isDrawing(node) {
   }
   return true;
 }
+// Rough colour names for starter primitives: hue family plus a lightness step. Renaming is the designer's job.
+function colorName(c) {
+  var r = c.r, g = c.g, b = c.b, max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min, sat = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1)), h = 0;
+  if (d) { if (max === r) h = ((g - b) / d) % 6; else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h = Math.round(h * 60); if (h < 0) h += 360; }
+  var fam = (sat < 0.2 || d < 0.08) ? 'neutral' : h < 15 ? 'red' : h < 40 ? 'orange' : h < 65 ? 'yellow' : h < 160 ? 'green' : h < 200 ? 'teal' : h < 250 ? 'blue' : h < 280 ? 'indigo' : h < 320 ? 'purple' : h < 345 ? 'pink' : 'red';
+  var steps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900], step = steps[Math.min(9, Math.max(0, Math.round((1 - l) * 9)))];
+  if (fam === 'neutral' && l > 0.98) return 'color/neutral/white'; if (fam === 'neutral' && l < 0.02) return 'color/neutral/black';
+  return 'color/' + fam + '/' + step;
+}
+function setupDiagnosis(V, all, textStyles, allTextStyles) {
+  var d = { variables: 'ok', styles: 'ok', rawColors: [], fonts: [], libraryOnly: false };
+  var hasLocal = V.count > 0, hasLib = V.libraryCount > 0;
+  var semantic = V.collections.some(function (c) { return c.kind === 'semantic' || c.kind === 'mixed'; }) || Object.keys(V.info).some(function (id) { return V.info[id].remote && V.info[id].semantic; });
+  if (!hasLocal && !hasLib) d.variables = 'none'; else if (!hasLocal && hasLib) { d.variables = 'library'; d.libraryOnly = true; } else if (!semantic) d.variables = 'raw-only';
+  if (!allTextStyles.length) d.styles = 'none';
+  var seenC = {}, seenF = {};
+  all.forEach(function (n) {
+    if (n.type === 'PAGE' || n.type === 'COMPONENT_SET' || n.type === 'SECTION' || hasAncestorOfType(n, 'INSTANCE')) return;
+    ['fills', 'strokes'].forEach(function (prop) { if (!(prop in n)) return; visiblePaints(n[prop]).forEach(function (p) { if (p.type !== 'SOLID' || (p.boundVariables && p.boundVariables.color) || (typeof p.opacity === 'number' && p.opacity <= 0.001)) return; var k = hexOf(p.color); if (!seenC[k]) { seenC[k] = { hex: k, count: 0, name: colorName(p.color) }; d.rawColors.push(seenC[k]); } seenC[k].count++; }); });
+    if (n.type === 'TEXT') { try { if (n.fontName === figma.mixed || n.fontSize === figma.mixed) return; var ts = n.textStyleId && n.textStyleId !== figma.mixed && n.textStyleId !== ''; if (ts) return; var fk = n.fontName.family + '|' + n.fontName.style + '|' + n.fontSize; if (!seenF[fk]) { seenF[fk] = { family: n.fontName.family, style: n.fontName.style, size: n.fontSize, count: 0 }; d.fonts.push(seenF[fk]); } seenF[fk].count++; } catch (e) {} }
+  });
+  // same generated name twice: suffix
+  var used = {}; d.rawColors.sort(function (a, b) { return b.count - a.count; }).forEach(function (c) { var base = c.name, i = 2; while (used[c.name]) { c.name = base + '-' + (i++); } used[c.name] = true; });
+  d.fonts.sort(function (a, b) { return b.count - a.count; }).forEach(function (f) { f.name = 'typography/' + kebab(f.family) + '-' + f.size + '-' + kebab(f.style); });
+  d.rawColors = d.rawColors.slice(0, 40); d.fonts = d.fonts.slice(0, 20);
+  return d;
+}
 var ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ndash: '\u2013', mdash: '\u2014', hellip: '\u2026', rsquo: '\u2019', lsquo: '\u2018', rdquo: '\u201d', ldquo: '\u201c' };
 function plainText(str) {
   function decode(t) { return t.replace(/&#x([0-9a-f]+);/gi, function (m, h) { return String.fromCharCode(parseInt(h, 16)); }).replace(/&#(\d+);/g, function (m, d) { return String.fromCharCode(parseInt(d, 10)); }).replace(/&([a-z]+);/gi, function (m, n) { return ENTITIES[n.toLowerCase()] !== undefined ? ENTITIES[n.toLowerCase()] : m; }); }
@@ -283,12 +310,13 @@ async function loadVariables() {
     var col = colById[v.variableCollectionId]; if (!col) return;
     (col.modes || []).forEach(function (m) {
       var val = resolveValue(v, m.modeId, 0); if (val === null || val === undefined) return;
+      var direct = v.valuesByMode[m.modeId], via = (direct && typeof direct === 'object' && direct.type === 'VARIABLE_ALIAS' && byId[direct.id]) ? byId[direct.id].name : '';
       if (v.resolvedType === 'COLOR' && typeof val === 'object' && 'r' in val) {
         var k = colorKey(val); if (!colorIndex[k]) colorIndex[k] = [];
-        if (!colorIndex[k].some(function (x) { return x.id === v.id; })) colorIndex[k].push({ id: v.id, name: v.name, semantic: i.semantic, hidden: i.hidden, scopes: i.scopes, code: i.codeSyntax });
+        if (!colorIndex[k].some(function (x) { return x.id === v.id; })) colorIndex[k].push({ id: v.id, name: v.name, semantic: i.semantic, hidden: i.hidden, scopes: i.scopes, code: i.codeSyntax, via: via, mode: col.modes.length > 1 ? m.name : '' });
       } else if (v.resolvedType === 'FLOAT' && typeof val === 'number') {
         var fk = String(Math.round(val * 100) / 100); if (!floatIndex[fk]) floatIndex[fk] = [];
-        if (!floatIndex[fk].some(function (x) { return x.id === v.id; })) floatIndex[fk].push({ id: v.id, name: v.name, semantic: i.semantic, hidden: i.hidden, scopes: i.scopes, code: i.codeSyntax });
+        if (!floatIndex[fk].some(function (x) { return x.id === v.id; })) floatIndex[fk].push({ id: v.id, name: v.name, semantic: i.semantic, hidden: i.hidden, scopes: i.scopes, code: i.codeSyntax, via: via, mode: col.modes.length > 1 ? m.name : '' });
       }
     });
   });
@@ -306,7 +334,7 @@ function rankCandidates(list, wantScope) {
       return sc;
     }
     return s(b) - s(a);
-  }).slice(0, 6).map(function (x) { return { id: x.id, name: x.name, semantic: x.semantic, code: x.code || '' }; });
+  }).slice(0, 6).map(function (x) { return { id: x.id, name: x.name, semantic: x.semantic, code: x.code || '', via: x.via || '', mode: x.mode || '' }; });
 }
 
 // ---------------------------------------------------------------------------
@@ -665,8 +693,9 @@ async function runAudit(scope) {
     st.score = wSum2 ? Math.round(rSum / wSum2 * 100) : null;
     if (st.score !== null) { wSum += st.weight; sSum += st.score * st.weight; }
   });
+  var setup = setupDiagnosis(V, all, textStyles, allTextStyles);
   return {
-    scope: scope, overall: wSum ? Math.round(sSum / wSum) : null, steps: steps,
+    scope: scope, overall: wSum ? Math.round(sSum / wSum) : null, steps: steps, setup: setup,
     counts: { components: components.length, nodes: all.length, variables: V.count, textStyles: allTextStyles.length, errors: counts.errors, warnings: counts.warnings, infos: counts.infos },
     fileName: figma.root.name
   };
@@ -754,6 +783,18 @@ var FIX = {
     var items = listOf(m.items), done = 0, failed = [];
     for (var i = 0; i < items.length; i++) { var fn = FIX[items[i].action]; if (!fn || items[i].action === 'batch-fix') continue; try { await fn(items[i]); done++; } catch (e) { failed.push({ token: items[i].token, error: String(e && e.message || e) }); } }
     m._result = { done: done, failed: failed };
+  },
+  'create-starter-primitives': async function (m) {
+    var items = listOf(m.colors); if (items.length > 60) items = items.slice(0, 60);
+    var col = figma.variables.createVariableCollection(str(m.collectionName || 'Primitives (starter)', LIMITS.name));
+    var mode = col.modes[0].modeId, made = 0;
+    for (var i = 0; i < items.length; i++) { var hx = String(items[i].hex || ''); if (!/^#[0-9a-f]{6}$/i.test(hx)) continue; var v = figma.variables.createVariable(str(items[i].name, LIMITS.name), col, 'COLOR'); var n = parseInt(hx.slice(1), 16); v.setValueForMode(mode, { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255, a: 1 }); v.scopes = ['ALL_FILLS', 'STROKE_COLOR']; v.description = 'Starter primitive made from a colour in use. Rename it, then add a semantic token that points at it.'; made++; }
+    m._result = { done: made, failed: [] };
+  },
+  'create-text-styles': async function (m) {
+    var items = listOf(m.fonts); if (items.length > 30) items = items.slice(0, 30); var made = 0, failed = [];
+    for (var i = 0; i < items.length; i++) { var it = items[i]; try { var fn = { family: str(it.family, LIMITS.name), style: str(it.style, LIMITS.name) }; await figma.loadFontAsync(fn); var st = figma.createTextStyle(); st.name = str(it.name, LIMITS.name); st.fontName = fn; st.fontSize = Number(it.size) || 16; st.description = 'Starter style made from a font in use. Rename it after its role (body, heading, caption).'; made++; } catch (e) { failed.push({ token: it.name, error: String(e && e.message || e) }); } }
+    m._result = { done: made, failed: failed };
   },
   'apply-text-style': async function (m) {
     var n = await getNode(m.nodeId); if (n.type !== 'TEXT') throw new Error('Not a text layer.');
@@ -860,6 +901,18 @@ var FIX = {
     var items = listOf(m.items), done = 0, failed = [];
     for (var i = 0; i < items.length; i++) { var fn = FIX[items[i].action]; if (!fn || items[i].action === 'batch-fix') continue; try { await fn(items[i]); done++; } catch (e) { failed.push({ token: items[i].token, error: String(e && e.message || e) }); } }
     m._result = { done: done, failed: failed };
+  },
+  'create-starter-primitives': async function (m) {
+    var items = listOf(m.colors); if (items.length > 60) items = items.slice(0, 60);
+    var col = figma.variables.createVariableCollection(str(m.collectionName || 'Primitives (starter)', LIMITS.name));
+    var mode = col.modes[0].modeId, made = 0;
+    for (var i = 0; i < items.length; i++) { var hx = String(items[i].hex || ''); if (!/^#[0-9a-f]{6}$/i.test(hx)) continue; var v = figma.variables.createVariable(str(items[i].name, LIMITS.name), col, 'COLOR'); var n = parseInt(hx.slice(1), 16); v.setValueForMode(mode, { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255, a: 1 }); v.scopes = ['ALL_FILLS', 'STROKE_COLOR']; v.description = 'Starter primitive made from a colour in use. Rename it, then add a semantic token that points at it.'; made++; }
+    m._result = { done: made, failed: [] };
+  },
+  'create-text-styles': async function (m) {
+    var items = listOf(m.fonts); if (items.length > 30) items = items.slice(0, 30); var made = 0, failed = [];
+    for (var i = 0; i < items.length; i++) { var it = items[i]; try { var fn = { family: str(it.family, LIMITS.name), style: str(it.style, LIMITS.name) }; await figma.loadFontAsync(fn); var st = figma.createTextStyle(); st.name = str(it.name, LIMITS.name); st.fontName = fn; st.fontSize = Number(it.size) || 16; st.description = 'Starter style made from a font in use. Rename it after its role (body, heading, caption).'; made++; } catch (e) { failed.push({ token: it.name, error: String(e && e.message || e) }); } }
+    m._result = { done: made, failed: failed };
   },
   'apply-text-style': async function (m) {
     var n = await getNode(m.nodeId); if (n.type !== 'TEXT') throw new Error('Not a text layer.');

@@ -88,13 +88,16 @@ class File {
         async getVariableByIdAsync(vid) { return self.variables.find(v => v.id === vid) || (self.libs || []).flatMap(l => l.variables).find(v => v.id === vid) || null; },
         async getVariableCollectionByIdAsync(cid) { return self.collections.find(c => c.id === cid) || (self.libs || []).flatMap(l => l.collections).find(c => c.id === cid) || null; },
         async importVariableByKeyAsync(key) { const v = (self.libs || []).flatMap(l => l.variables).find(v => v.key === key); if (!v) throw new Error('not found'); return v; },
+        createVariableCollection(name) { const c = { id: 'VariableCollectionId:' + id(), name, modes: [{ modeId: 'm:Mode 1', name: 'Mode 1' }], defaultModeId: 'm:Mode 1', variableIds: [] }; self.collections.push(c); return c; },
+        createVariable(name, col, type) { const v = { id: 'VariableID:' + id(), name, resolvedType: type, variableCollectionId: col.id, valuesByMode: {}, scopes: ['ALL_SCOPES'], codeSyntax: {}, description: '', hiddenFromPublishing: false, remote: false, setValueForMode(m, val) { this.valuesByMode[m] = val; }, setVariableCodeSyntax(p, s) { this.codeSyntax[p] = s; } }; col.variableIds.push(v.id); self.variables.push(v); return v; },
         setBoundVariableForPaint(paint, field, v) { const p = JSON.parse(JSON.stringify(paint)); p.boundVariables = { [field]: { type: 'VARIABLE_ALIAS', id: v.id } }; return p; }
       },
       async getLocalTextStylesAsync() { return self.textStyles; },
       async getLocalEffectStylesAsync() { return self.effectStyles || []; },
       async getStyleByIdAsync(sid) { return self.stylesById[sid] || null; },
       async getNodeByIdAsync(nid) { return self.nodesById[nid] || null; },
-      async loadFontAsync() {}
+      async loadFontAsync() {},
+      createTextStyle() { const st = { id: 'S:' + id(), type: 'TEXT', name: '', fontName: { family: 'Inter', style: 'Regular' }, fontSize: 16, description: '', boundVariables: {}, remote: false }; self.textStyles.push(st); self.stylesById[st.id] = st; return st; }
     };
   }
 }

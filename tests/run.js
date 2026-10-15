@@ -260,6 +260,23 @@ function paintBound(hex, v) { return solid(hex, { boundVariables: { color: bound
   }
 
   // -------------------------------------------------------------------------
+  section('Set-up guidance');
+  {
+    const f = new File(); // nothing set up at all
+    const card = add(f.page, node('FRAME', 'Card', { layoutMode: 'VERTICAL', fills: [solid('#2F6BFF')] })); add(card, node('TEXT', 'title', { fontName: { family: 'Inter', style: 'Semi Bold' }, fontSize: 20 })); add(card, node('TEXT', 'body', { fontName: { family: 'Inter', style: 'Regular' }, fontSize: 16 })); add(card, node('RECTANGLE', 'divider', { fills: [solid('#E7E4DC')] })); add(card, node('RECTANGLE', 'bg', { fills: [solid('#2F6BFF')] }));
+    f.select(card);
+    const ctx = load(f); const r = await ctx.runAudit('selection');
+    t('no variables: diagnosis says none, with the distinct raw colours counted once', r.setup.variables === 'none' && r.setup.rawColors.length === 2 && r.setup.rawColors[0].count === 2, JSON.stringify(r.setup.rawColors));
+    t('starter names come from hue and lightness', r.setup.rawColors.some(c => /^color\/blue\/\d+$/.test(c.name)) && r.setup.rawColors.some(c => /^color\/neutral\/\d+$/.test(c.name)), JSON.stringify(r.setup.rawColors.map(c => c.name)));
+    t('no text styles: diagnosis lists the distinct fonts in use', r.setup.styles === 'none' && r.setup.fonts.length === 2 && /^typography\/inter-20-semi-bold$/.test(r.setup.fonts[0].name) || /^typography\/inter-16-regular$/.test(r.setup.fonts[0].name), JSON.stringify(r.setup.fonts));
+    await ctx.FIX['create-starter-primitives']({ colors: r.setup.rawColors.map(c => ({ hex: c.hex, name: c.name })), collectionName: 'Primitives (starter)' });
+    await ctx.FIX['create-text-styles']({ fonts: r.setup.fonts.map(x => ({ family: x.family, style: x.style, size: x.size, name: x.name })) });
+    const r2 = await load(f).runAudit('selection');
+    t('after creating starters, the raw colours get matches and the texts get styles offered', check(r2, 'layers', 'colors').items.every(i => i.candidates.length) && check(r2, 'layers', 'text').items.every(i => i.candidates.length), JSON.stringify(check(r2, 'layers', 'colors').items.map(i => i.candidates.map(c => c.name))));
+    t('and the diagnosis moves on to raw-only', r2.setup.variables === 'raw-only' && r2.setup.styles === 'ok');
+  }
+
+  // -------------------------------------------------------------------------
   section('Scoring');
   {
     const f = fixture();
