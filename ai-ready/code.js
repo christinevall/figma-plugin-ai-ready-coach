@@ -380,7 +380,7 @@ async function runAudit(scope) {
         var rawNames = [], aliasNames = [];
         Object.keys(V.info).forEach(function (id) { var vi = V.info[id]; if (vi.collectionId !== c.id) return; (vi.isAlias ? aliasNames : rawNames).push(vi.name); });
         F(vSplit, { kind: 'collection', id: c.id, name: c.name, note: c.alias + ' aliases and ' + c.raw + ' raw values in one collection', raw: rawNames.sort().slice(0, 80), aliases: aliasNames.sort().slice(0, 80),
-          manual: 'No button here: Figma does not let a plugin move a variable to another collection, and recreating them would break every file that uses this library. By hand, in the variable panel: 1. create a collection "' + c.name + ' primitives". 2. Recreate the ' + c.raw + ' raw values there (same names). 3. Point each of the ' + c.alias + ' aliases at the new primitive. 4. Delete the old raw values. Then run the check again.' });
+          manual: 'No button for this one: Figma does not let a plugin move a variable between collections. By hand, in the variable panel: move the ' + c.raw + ' raw values into their own primitives collection and keep the ' + c.alias + ' aliases here. Polish, not urgent.' });
       }
       else if (!ok) F(vSplit, { kind: 'collection', id: c.id, name: c.name, note: c.kind === 'primitive' ? 'Only raw values, and no semantic collection points at them' : 'Semantic collection without a primitive one' });
       else P(vSplit);
