@@ -290,7 +290,7 @@
   // ---------------------------------------------------------------------------
   // State and helpers
   // ---------------------------------------------------------------------------
-  var VERSION = '0.10.0 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
+  var VERSION = '0.10.1 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
   var FEEDBACK_EMAIL = 'hello@moonlearning.io'; // beta feedback address; shown in the banner and in the report
   var state = { scope: 'selection', result: null, step: 0, checklist: {}, done: {}, sel: null, pending: {}, expanded: {} };
   var STEPS = ['overview', 'variables', 'styles', 'components', 'layers', 'checklist', 'report'];
@@ -538,6 +538,11 @@
     } else if (st.key === 'variables') {
       h += '<div class="empty">No variables in this file, and none from a library. Variables are the tokens an agent maps to code, so this is the first thing to set up. Start with a primitives collection (colours, numbers) and a semantic one that aliases it.</div>';
     }
+    if (st.key === 'layers') {
+      var tok = 0, raw = 0; st.checks.forEach(function (c) { if (['colors', 'text', 'radius', 'spacing'].indexOf(c.key) < 0) return; tok += c.pass; raw += remaining(c); });
+      var sw = state.result.scope === 'selection' ? 'your selection' : state.result.scope === 'page' ? 'this page' : 'the file';
+      h += '<div class="tip" role="note"><span class="lbl">Agent view</span><span>In ' + sw + ' an agent reads <b>' + tok + ' value' + (tok === 1 ? '' : 's') + ' by token name</b>' + (raw ? ' and has to <b>guess ' + raw + '</b> that are raw numbers or colours. Every guess is a place where its code and your design drift apart.' : '. Nothing to guess here.') + '</span></div>';
+    }
     if (st.key === 'components') h += '<p class="lead">Context for the selection</p><div id="ctx-sel"></div>';
     h += '<p class="lead">Checks</p>';
     var any = false;
@@ -686,7 +691,7 @@
     if (openTok) {
       h += '<p class="lead">Missing connections in ' + scopeWord + '</p>';
       h += '<p class="hero" style="padding:0 0 8px">' + openTok + ' value' + (openTok === 1 ? '' : 's') + ' not connected to a token or style. ' + (matchTok ? matchTok + ' match' + (matchTok === 1 ? 'es' : '') + ' one you already have.' : 'None match a token you have.') + '</p>';
-      if (matchTok) h += '<div class="batch"><button class="btn primary" data-act="connect-all">Connect all ' + matchTok + ' match' + (matchTok === 1 ? '' : 'es') + '</button><span class="hint">Semantic tokens first. One Cmd+Z undoes all of it.</span></div>';
+      if (matchTok) h += '<div class="batch"><button class="btn primary" data-act="connect-all">Connect all ' + matchTok + ' match' + (matchTok === 1 ? '' : 'es') + '</button><span class="hint">Semantic tokens first. One Cmd+Z undoes all of it. Run again afterwards to re-score.</span></div>';
       tokenChecks.forEach(function (c) { h += checkHTML(c); });
     } else if (layersStep && layersStep.score !== null) {
       h += '<p class="lead">Connections in ' + scopeWord + '</p><div class="empty win" style="padding:8px 0 10px;text-align:left">✓ Every colour, radius, gap and text in ' + scopeWord + ' is connected to a token or style.</div>';

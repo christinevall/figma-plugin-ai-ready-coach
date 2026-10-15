@@ -18,6 +18,14 @@ It runs entirely on your machine. No AI, no account, no network. It only writes 
 
 Every step opens with **Why this matters**, and every check has a **?** that explains why an agent cares. The aim is that a beginner can go through the file once and understand each concept while fixing it.
 
+## What you see first
+
+Select a component (or a page, or the whole file) and run. The Overview opens with **Missing connections**: every colour, radius, gap and text in that scope that is not connected to a token or style, each with the matching token you already have, a Bind button, and one line on what an agent writes before and after. **Connect all** binds every match in one undo step. Below that come the other findings by impact, then the stations. The Variables and Styles stations are file-wide and say so when you ran on a selection.
+
+## Certification
+
+`node tests/certify.js` builds a realistic library (primitives, semantics, a typography collection, text styles, Button, Alert, TextField, Toggle, Card, Badge, Chip, icons, a pattern with an instance) with 29 planted problems and requires the audit to report every one of them and nothing else. `tests/run.js` holds the 74 unit cases. Both must pass before a push.
+
 ## Scoring
 
 Variables 30 · Styles 10 · Components 30 · Layers 30. Each step is a weighted average of its checks' pass ratios, weighted by what an agent reads first: in Layers, colours count 3, semantic tokens and text 2, radius, spacing, layout and names 1; in Components, descriptions 3, property names 2, the rest 1 or less; in Variables, split, naming, scopes and code names 2, the rest 1 or less. A check with nothing to measure is skipped. Contrast is reported but never scored. The checklist is shown as "n of 22", separately.
