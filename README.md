@@ -1,8 +1,8 @@
-# AI Ready Check · Figma plugin (beta)
+# AI Ready Coach · Figma plugin (beta)
 
-A free Figma plugin that checks and fixes your Figma file for AI agents, MCP and dev handoff, step by step. For designers who do not have access to the codebase and want to get the file in order anyway.
+A free Figma plugin that teaches you what makes a Figma file readable for AI agents and developers, checks your file against it, and fixes what it can with one click. Six stations, each with a lesson, a task on your own file and the findings with their fixes. For designers who do not have access to the codebase and want to get the file in order anyway, and understand why.
 
-![AI Ready Check](docs/cover.png)
+![AI Ready Coach](docs/cover.png)
 
 It walks you through six stations:
 
@@ -23,7 +23,7 @@ Runs entirely on your machine. No AI, no account, no network. It only writes to 
 2. Open the Figma **desktop** app (local plugins cannot be imported in the browser).
 3. Menu → **Plugins → Development → Import plugin from manifest…**
 4. Pick `ai-ready/manifest.json`.
-5. Run it from **Plugins → Development → AI Ready Check**, or simply pick it from the Plugins menu once it is installed.
+5. Run it from **Plugins → Development → AI Ready Coach**, or simply pick it from the Plugins menu once it is installed.
 
 Try it on a copy of your file first. The checks are heuristics, not a verdict, and this is a beta.
 

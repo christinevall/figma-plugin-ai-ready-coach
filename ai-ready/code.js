@@ -1,4 +1,4 @@
-// AI Ready · a plugin by moonlearning.io
+// AI Ready Coach · a plugin by moonlearning.io
 // Walks a designer through making a Figma file readable for AI agents, step by step:
 // variables, styles, components, layers, and a checklist for what only a person can check.
 // Runs entirely on this machine. No AI, no network, nothing leaves the file.
@@ -904,6 +904,8 @@ var HANDLERS = {
   },
   'selection-info': function () { post('selection-info', selectionInfo()); },
   'checklist-get': function () { post('checklist', readChecklist()); },
+  'lessons-get': async function () { var v = {}; try { v = (await figma.clientStorage.getAsync('lessons-done')) || {}; } catch (e) {} post('lessons', v); },
+  'lesson-set': async function (m) { if (typeof m.key !== 'string' || !/^[a-z]{3,12}$/.test(m.key)) return; var v = {}; try { v = (await figma.clientStorage.getAsync('lessons-done')) || {}; } catch (e) {} v[m.key] = true; try { await figma.clientStorage.setAsync('lessons-done', v); } catch (e) {} post('lessons', v); },
   'banner-get': async function () { var v = false; try { v = !!(await figma.clientStorage.getAsync('banner-dismissed')); } catch (e) {} post('banner', v); },
   'banner-dismiss': async function () { try { await figma.clientStorage.setAsync('banner-dismissed', true); } catch (e) {} },
   'checklist-set': function (m) {

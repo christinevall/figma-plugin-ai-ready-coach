@@ -1,4 +1,4 @@
-# AI Ready Check · a plugin by [Christine Vallaure](https://christinevallaure.com), [moonlearning.io](https://moonlearning.io)
+# AI Ready Coach · a plugin by [Christine Vallaure](https://christinevallaure.com), [moonlearning.io](https://moonlearning.io)
 
 A Figma plugin that walks a designer through making a file readable for AI agents, step by step. It is for people who do not have access to the codebase and want to get their Figma file in order anyway: primitives and semantics, scopes, code names, descriptions, states, tokens on layers, and a checklist for what only a person can check.
 
@@ -52,7 +52,7 @@ Variables 30 · Styles 10 · Components 30 · Layers 30. Each step is a weighted
 
 1. Figma desktop → **Plugins → Development → Import plugin from manifest…**
 2. Pick `manifest.json` in this folder.
-3. Run it from **Plugins → Development → AI Ready Check**.
+3. Run it from **Plugins → Development → AI Ready Coach**.
 
 While iterating, turn on **Plugins → Development → Hot reload plugin** once.
 

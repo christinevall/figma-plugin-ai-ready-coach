@@ -98,6 +98,22 @@
   .chip { font-size: 10.5px; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--line); color: var(--ink-soft); font-weight: 600; font-variant-numeric: tabular-nums; }
   .chip.g { border-color: var(--good); color: var(--good); } .chip.y { border-color: var(--warn); color: var(--warn); } .chip.r { border-color: var(--crit); color: var(--crit); }
 
+  .tutor { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 2px 0 10px; font-size: 11px; color: var(--ink-soft); line-height: 1.45; }
+  .tutor .tl { display: block; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+  @media (max-width: 420px) { .tutor { grid-template-columns: 1fr; } }
+  /* lesson */
+  .why.lesson summary { color: var(--accent-text); }
+  .ldone { font-size: 10.5px; color: var(--good); font-weight: 600; margin-left: 6px; }
+  .tryit { display: flex; gap: 10px; align-items: flex-start; background: var(--ink); color: var(--paper); border-radius: 9px; padding: 10px 12px; margin: 10px 0 8px; font-size: 11.5px; line-height: 1.5; }
+  .tryit .lbl { flex: none; font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 2px; }
+  .quiz { border-top: 1px solid var(--line-2); padding-top: 8px; margin-top: 4px; }
+  .quiz summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--ink); list-style: none; }
+  .quiz summary::-webkit-details-marker { display: none; }
+  .quiz summary::before { content: 'Q '; color: var(--accent-text); font-weight: 700; }
+  .quiz p { margin: 6px 0 0; font-size: 11.5px; color: var(--ink-soft); line-height: 1.5; }
+  .gl { padding: 8px 0; border-top: 1px solid var(--line-2); font-size: 12px; line-height: 1.5; }
+  .gl b { color: var(--ink); font-weight: 600; }
+  .glink { border: 0; background: transparent; color: var(--accent-text); font-size: 11.5px; text-decoration: underline; text-underline-offset: 2px; padding: 0; }
   /* explainer */
   .why { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 0 12px; margin: 10px 0 6px; }
   .why summary { cursor: pointer; list-style: none; padding: 10px 0; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
@@ -250,7 +266,7 @@
     <button class="sizebtn" id="sizebtn" title="Toggle window size" aria-label="Toggle window size">⤢</button>
     <div class="brand">
       <svg class="logo" width="22" height="15" viewBox="0 0 335 229" aria-hidden="true"><path d="M165.576 37.3072C180.771 6.91654 217.975 0 249.575 0C300.759 0 334.14 36.4962 334.14 92.1307V228.769H267.378V97.9167C267.378 75.6629 256.696 61.4204 235.333 61.4204C213.079 61.4204 200.617 76.9981 200.617 103.258V228.769H133.855L133.523 103.258C133.523 76.9982 121.061 61.4205 98.8068 61.4205C77.4432 61.4205 66.7614 75.6629 66.7614 97.9167V228.769H0V92.1307C0 36.4963 33.3807 0 84.5644 0C116.165 0 150.381 6.91654 165.576 37.3072Z" fill="#171A25"/></svg>
-      <div><h1>AI Ready Check <button type="button" class="beta" id="beta-pill" aria-expanded="false" aria-controls="warn" title="About the beta">Beta</button></h1><p>Check and fix your Figma file for AI agents, MCP and dev handoff</p>
+      <div><h1>AI Ready Coach <button type="button" class="beta" id="beta-pill" aria-expanded="false" aria-controls="warn" title="About the beta">Beta</button></h1><p>Check, fix and learn: make your Figma file readable for AI agents and developers</p>
         <p class="byml">by Christine Vallaure · <a class="ext" href="#" data-extlink="https://moonlearning.io">moonlearning.io</a></p></div>
     </div>
     <div class="warn-banner" id="warn" role="note"><span class="txt"><b>This is a beta.</b> Try it on a copy of your file first. Every fix is one click and one Cmd+Z. Wrong result, a bug, or an idea? Mail <span id="feedback-mail" style="font-weight:600"></span> <button type="button" id="feedback-copy" style="margin-left:2px">copy</button></span><button type="button" id="warn-ok">Got it</button></div>
@@ -280,7 +296,7 @@
     <span class="pos" id="pos"></span>
     <button class="next" id="next">Next ›</button>
   </div>
-  <div class="micro" id="micro">Runs on-device · no AI · nothing leaves your file · <a class="ext" href="#" data-extlink="https://moonlearning.io">learn the whole workflow at moonlearning.io</a> · <span id="ver"></span></div>
+  <div class="micro" id="micro">Runs on-device · no AI · nothing leaves your file · <a class="ext" href="#" data-extlink="https://moonlearning.io">learn the whole workflow at moonlearning.io</a> · <span id="ver"></span> · <button type="button" class="glink" data-act="glossary">glossary</button></div>
 
   <div class="grip" id="grip" role="separator" aria-label="Resize plugin window" title="Drag to resize">
     <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M11 1 1 11M11 5 5 11M11 9 9 11" stroke="#b9b6ac" stroke-width="1.2" fill="none"/></svg>
@@ -290,9 +306,9 @@
   // ---------------------------------------------------------------------------
   // State and helpers
   // ---------------------------------------------------------------------------
-  var VERSION = '0.10.2 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
+  var VERSION = '0.11.1 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
   var FEEDBACK_EMAIL = 'hello@moonlearning.io'; // beta feedback address; shown in the banner and in the report
-  var state = { scope: 'selection', result: null, step: 0, checklist: {}, done: {}, sel: null, pending: {}, expanded: {} };
+  var state = { scope: 'selection', result: null, step: 0, checklist: {}, done: {}, sel: null, pending: {}, expanded: {}, lessons: {}, read: {} };
   var STEPS = ['overview', 'variables', 'styles', 'components', 'layers', 'checklist', 'report'];
   var STEP_LABELS = { overview: 'Overview', variables: 'Variables', styles: 'Styles', components: 'Components', layers: 'Layers', checklist: 'Checklist', report: 'Report' };
   var SEV = { error: { label: 'Critical', color: 'var(--crit)' }, warn: { label: 'Worth fixing', color: 'var(--warn)' }, info: { label: 'Polish', color: 'var(--info)' }, note: { label: 'Not scored', color: 'var(--info)' } };
@@ -337,6 +353,102 @@
     report: '<p>A plain-text summary of scores, open findings and the checklist. Paste it into a ticket, a Slack message or a handover doc, so the developer side knows what is done and what is still open.</p>'
   };
 
+  // Lessons: one per station. Concept in three sentences, a task on the user's own file, one question.
+  var LESSONS = {
+    variables: {
+      concept: '<p>A <b>variable</b> is a value with a name. An agent reads the name, not the value, so the name has to say what the value is for. That is the whole idea behind two layers: <b>primitives</b> hold the values (<code>color/blue/500</code>), <b>semantics</b> hold the meaning (<code>color/background/brand</code>) and point at a primitive.</p>'
+        + '<pre>primitive                semantic                       layer\ncolor/blue/500  ◄────   color/background/brand  ◄────  Card background\n#2F6BFF                 --sds-color-background-brand   (bound)</pre>'
+        + '<p>Three fields make a semantic token readable for a machine: its <b>scope</b> (where it may be used), its <b>code syntax</b> (its name in CSS) and its <b>description</b> (when to use it, when not).</p>',
+      tryIt: 'Open the variable panel, pick one semantic token and look at its code syntax field. If it is empty, that is the name an agent would have to invent. Fill it here with the suggestion, then look at the token in Dev Mode: the code name is what shows up.',
+      question: 'A layer is bound to color/blue/500. Dark mode comes. What happens?',
+      answer: 'Nothing happens to that layer, because a primitive has one value. Only semantic tokens switch with the mode. Bound to color/background/brand instead, the layer would follow the theme, and an agent would write the theme-aware token in code.'
+    },
+    styles: {
+      concept: '<p>A <b>text style</b> is a named bundle of font, size, weight and line height. Code has the same thing under a different name: a type token like <code>--typography-body-md</code>. The style name is the bridge between the two.</p>'
+        + '<p>A text layer without a style is a one-off: an agent sees Inter 16 Semi Bold and has to guess which token that was meant to be. With a style it reads <code>typography/body-md</code> and maps it in one step.</p>',
+      tryIt: 'Select any text layer in your file. In the right panel, look at the Text section: is there a style name, or a font picker? If it is a font picker, the agent is guessing. The Layers station lists these and offers the matching style.',
+      question: 'Why does the plugin not bind line height to a variable?',
+      answer: 'Figma reads a bound line-height variable as pixels, so a value of 150 becomes 150px instead of 150 percent. Code expresses line height relatively. It is the one type property that can be mirrored by value but not by binding.'
+    },
+    components: {
+      concept: '<p>Over MCP an agent gets a component as a short record: its <b>name</b>, its <b>description</b>, its <b>properties</b> with their values. That record is all it knows. The layers inside come second.</p>'
+        + '<p>So the description is the contract: what the component is, when to use it, when not to, which states exist. Property names should be the words the code uses, because <code>size: sm / md / lg</code> is a mapping an agent can do without thinking.</p>',
+      tryIt: 'Select a component. The card below shows what an agent reads right now. If it is only the name, write the description from the draft and apply it. Then select the component again and read the card: that is what changed for the agent.',
+      question: 'A Button set has a State variant with hover and disabled. Does the agent still need the description to mention states?',
+      answer: 'Less, but yes. The variant tells it the states exist. The description tells it what changes in each one, and which states the browser handles itself (hover, focus) so it does not build them as props.'
+    },
+    layers: {
+      concept: '<p>Layers are where tokens get <b>used</b>. A fill bound to <code>color/background/brand</code> tells an agent the token; a raw <code>#2F6BFF</code> tells it nothing, and it hard-codes the number. The same goes for radius, padding, gaps and type.</p>'
+        + '<p><b>Auto-layout</b> is how an agent reads direction, spacing and resizing: a frame with absolute positions is a picture it has to measure. <b>Names</b> like <code>Card / Header</code> are the words it uses for the parts.</p>',
+      tryIt: 'Select one component and run the check on the selection. Every raw value appears with the token that has the same value. Bind one, then read the line under it: that is the difference in the code an agent writes.',
+      question: 'A layer is bound to color/blue/500 and the value is right. Why does the plugin still flag it?',
+      answer: 'Because the binding carries no meaning. The agent writes --color-blue-500 in code, and when the brand colour changes or dark mode comes, that layer stays blue. Bound to the semantic token that aliases the same primitive, it follows both.'
+    },
+    checklist: {
+      concept: '<p>Some things no plugin can see: whether your names match the code, whether the rules are written as rules, whether an agent can actually reach the file. These need a person, and they are the difference between a tidy file and an AI-ready one.</p>'
+        + '<p>Ticks are saved in the file with your name, so the team works from one list. The last two items are the real test: a fresh agent builds a screen from your file, and a component generated from the code matches yours.</p>',
+      tryIt: 'Ask a developer for one thing: the code name of one token, say the brand background. Compare it with the code syntax field in Figma. If they differ, you have found the first drift, and you know which side to fix.',
+      question: 'The checklist says "as far as Figma allows". What can Figma not express that code has?',
+      answer: 'Props that only exist in code (href, onClick, aria-label), children beyond one slot, states the browser sets, values computed at runtime. Do not fake them with extra variants. Name them in the description so the gap is written down.'
+    },
+    report: {
+      concept: '<p>The report is the handover. It lists every station with its open findings and the checklist as plain text, so a developer sees what is done and what is still open without opening Figma.</p>',
+      tryIt: 'Copy the report and paste it into a message to a developer. Ask them to mark the items that are wrong on the code side. What comes back is your next list.',
+      question: 'Why plain text and not a PDF?',
+      answer: 'Because it goes where developers read: a ticket, a pull request, a chat. Plain text can be quoted, searched and diffed. A PDF is a screenshot with extra steps.'
+    }
+  };
+  // Micro tutorials per check: what the thing is, and where you find it in Figma.
+  var TUTOR = {
+    split: { what: 'Two collections of variables: one with raw values (the palette), one with names for their use that point at the palette. The split is what lets a theme change touch one alias instead of every layer.', where: 'Local variables (the icon with the sliders in the right panel, or Shift+Alt+V). Collections are the tabs at the top left of that panel.' },
+    'semantic-naming': { what: 'A semantic name says what a token is for, like color/background/brand, so the colour behind it can change without the name changing.', where: 'Local variables, double-click a name to rename it. Groups come from the slashes.' },
+    scopes: { what: 'A scope limits where a variable shows up in the pickers: text colours in the text picker, radius values in the radius field. It also tells an agent the token’s role.', where: 'Local variables, click the variable, then the settings icon on the right, then Scoping.' },
+    'code-syntax': { what: 'The code syntax field holds the name a token has in code, like --sds-color-background-brand. It is what Dev Mode shows to developers and what an agent reads over MCP.', where: 'Local variables, click the variable, settings icon, Code syntax, then Web.' },
+    'var-desc': { what: 'A one-line description on a token: what it is for and what it is not for. Names cannot carry that rule, descriptions can.', where: 'Local variables, click the variable, settings icon, Description.' },
+    'hide-primitives': { what: 'A hidden variable still exists and still feeds its aliases, but it does not show up in files that use the library. Designers and agents then only see the semantic tokens.', where: 'Local variables, select the primitives, right-click, Hide from publishing.' },
+    modes: { what: 'Modes are the columns in a collection: Light and Dark, or Compact and Comfortable. A semantic token has one value per mode, and a layer switches with the mode of its frame.', where: 'Local variables, the column headers in a collection. Double-click to rename.' },
+    'naming-style': { what: 'One naming convention for every token: the same separators, the same casing. Agents match names literally.', where: 'Local variables. Rename in place, or use the Rename button here.' },
+    'text-styles-exist': { what: 'Text styles are your type scale with names. Without them every text layer is a one-off font setting.', where: 'Select a text layer, Text section in the right panel, the four-dots icon next to the font, then the plus to create a style.' },
+    'text-styles-bound': { what: 'A text style whose size, family and weight come from variables shares one source with the code token. Line height stays a value on purpose.', where: 'Edit the style (hover it in the styles list, click the settings icon), then the variable icon next to each field.' },
+    'text-style-desc': { what: 'A description on a style says where it belongs. Rules do not fit in a name.', where: 'Edit the style, Description field at the top.' },
+    desc: { what: 'The description is the text under the component name in the right panel. Over MCP it is the first thing an agent reads about the component.', where: 'Select the main component, right panel, Component section, the text field under the name. Or write it here.' },
+    'desc-rich': { what: 'A description that only repeats the name tells an agent nothing. One or two sentences on purpose, when to use it and when not are what make it useful.', where: 'Same field as above, under the component name.' },
+    'desc-plain': { what: 'Descriptions that came in through a sync tool often contain HTML codes like &lt;code&gt;. An agent reads them as characters, not as formatting.', where: 'Same field. The Clean up button rewrites it to plain text.' },
+    props: { what: 'Component properties are the knobs on a component: text, booleans, instance swaps and variants. Agents map them to code props by name.', where: 'Select the main component, right panel, Properties, click the pencil next to a property to rename it.' },
+    values: { what: 'Variant values are the options of a variant property, like sm, md and lg. Default names like Variant2 are placeholders.', where: 'Select the variant, right panel, the property row, rename the value.' },
+    states: { what: 'States are what happens on hover, focus, pressed and disabled. In a static frame they do not exist unless you draw them or name them.', where: 'Add a State variant property to the set, or describe the states in the description.' },
+    'docs-link': { what: 'A documentation link on a component points at the page that explains it: Storybook, a wiki, Zeroheight.', where: 'Select the main component, right panel, the link icon under the description.' },
+    'comp-layout': { what: 'Auto-layout is the rule that says how children stack and resize. A component without it is a picture.', where: 'Select the component and press Shift+A.' },
+    hidden: { what: 'A hidden layer is still in the file. If it is a leftover, delete it. If it is an option, make it a boolean property.', where: 'Layers panel, the eye icon. For an option: select the layer, right panel, Appearance, the boolean property icon next to the eye.' },
+    colors: { what: 'A fill or stroke bound to a colour variable carries the token name into code. A raw colour is a number an agent hard-codes.', where: 'Select the layer, right panel, Fill, the variable icon on the colour swatch. Or Bind here.' },
+    'semantic-on-layers': { what: 'A layer bound to a primitive is tokenised but says nothing about intent, and it does not follow a theme change.', where: 'Same place as the fill. Pick the semantic token instead of the primitive.' },
+    text: { what: 'A text layer with a style reads as a named type token. Without a style it is a font setting an agent has to guess.', where: 'Select the text, right panel, Text, the four-dots icon, pick the style. Or Apply style here.' },
+    radius: { what: 'A corner radius bound to a variable reads as radius/md in code instead of 8.', where: 'Select the layer, right panel, Appearance, Corner radius, the variable icon.' },
+    spacing: { what: 'Padding and gaps bound to spacing variables tell an agent your spacing scale.', where: 'Select the auto-layout frame, right panel, Auto layout, the variable icon next to each value.' },
+    layout: { what: 'Auto-layout makes direction, spacing and resizing explicit. Absolute positions have to be measured.', where: 'Select the frame and press Shift+A.' },
+    names: { what: 'Layer names are the words an agent uses for the parts of a component. Frame 12 says nothing.', where: 'Double-click the name in the layers panel. Or rename here.' },
+    effects: { what: 'An effect style is a named shadow or blur that maps to an elevation token in code.', where: 'Select the layer, right panel, Effects, the four-dots icon, pick the style.' },
+    contrast: { what: 'The ratio between text and its background. WCAG AA asks for 4.5 to 1, or 3 to 1 for large text. An agent copies your pairs as they are.', where: 'Change the text or the background colour. Only the design can fix this.' }
+  };
+  var GLOSSARY = [
+    ['Agent', 'A program that uses an AI model to do work on its own: read your file, write code, make changes. It only knows what it can read.'],
+    ['MCP', 'Model Context Protocol. The way an agent connects to a tool like Figma and asks for data: components, variables, descriptions.'],
+    ['Token', 'A design decision with a name: a colour, a size, a radius, a font. In Figma a token is a variable or a style; in code it is a CSS variable or a constant.'],
+    ['Primitive', 'A token that holds a raw value and is named after the value: color/blue/500, space/4. The palette.'],
+    ['Semantic token', 'A token named after its use: color/background/brand, space/inset/md. It points at a primitive and carries the meaning.'],
+    ['Alias', 'A variable whose value is another variable. Semantic tokens are aliases to primitives.'],
+    ['Scope', 'Where a variable may be used: fills, strokes, text, radius, gap. Keeps the pickers short and tells an agent the token’s role.'],
+    ['Code syntax', 'The field on a variable that holds its name in code, like --sds-color-background-brand. Dev Mode and MCP show it.'],
+    ['Mode', 'A column of values in a collection: Light and Dark, Compact and Comfortable. A semantic token has one value per mode.'],
+    ['Text style', 'A named bundle of font, size, weight and line height. Maps to a type token in code.'],
+    ['Effect style', 'A named shadow or blur. Maps to an elevation token in code.'],
+    ['Component', 'A reusable element with a description and properties. An agent reads the description first.'],
+    ['Variant', 'One version of a component inside a component set, selected by a property like size or state.'],
+    ['Instance', 'A copy of a component placed in a design. It inherits everything; changes on it are overrides.'],
+    ['Auto-layout', 'Figma’s layout rules: direction, spacing, padding, resizing. The way an agent reads how things stack.'],
+    ['Code Connect', 'A Figma feature a developer sets up to link a component to its code snippet. Not needed for this plugin.'],
+    ['Drift', 'When Figma and code say different things about the same component or token. Every raw value is a place where drift starts.']
+  ];
   var CHECKLIST = [
     { title: 'Match with code', items: [
       { key: 'match-names', label: 'Component names in Figma are the names used in code', why: 'An agent that sees Button in Figma and Button in code knows they are the same thing. "Btn / Primary" in one and PrimaryButton in the other forces a guess. Where code has parts Figma folds into one (Card.Header, Card.Body), name the layers after the parts.' },
@@ -497,9 +609,11 @@
     $('next').textContent = state.step === STEPS.length - 1 ? 'Done' : 'Next ›';
     $('pos').innerHTML = '<b>' + STEP_LABELS[STEPS[state.step]] + '</b> · ' + (state.step + 1) + ' of ' + STEPS.length;
   }
+  function lessonDone(key) { if (!LESSONS[key] || state.lessons[key]) return; if (state.read[key]) { state.lessons[key] = true; send({ type: 'lesson-set', key: key }); } }
   function goStep(i) {
     if (!state.result) return;
     state.step = Math.max(0, Math.min(STEPS.length - 1, i));
+    var k = STEPS[state.step]; if (LESSONS[k]) state.read[k] = true;
     renderStepper(); renderNav(); renderStep();
     $('scroll').scrollTop = 0;
   }
@@ -517,7 +631,14 @@
     var chip = score === null || score === undefined ? '' : '<span class="chip ' + meterClass(score) + '">' + score + ' / 100</span>';
     return '<div class="step-h"><h2>' + esc(title) + chip + '</h2><p>' + esc(what) + '</p>' + (note ? '<div class="note">' + esc(note) + '</div>' : '') + '</div>';
   }
-  function whyHTML(key, open) { return '<details class="why"' + (open ? ' open' : '') + '><summary>Why this matters</summary><div class="body">' + WHY[key] + '</div></details>'; }
+  function whyHTML(key, open) {
+    var L = LESSONS[key]; if (!L) return '<details class="why"' + (open ? ' open' : '') + '><summary>Why this matters</summary><div class="body">' + WHY[key] + '</div></details>';
+    var done = !!state.lessons[key];
+    return '<details class="why lesson"' + (open ? ' open' : '') + ' data-lesson="' + key + '"><summary>Lesson' + (done ? ' <span class="ldone">✓ done</span>' : '') + '</summary><div class="body">' + L.concept
+      + '<div class="tryit"><span class="lbl">Try it</span><span>' + esc(L.tryIt) + '</span></div>'
+      + '<details class="quiz"><summary>' + esc(L.question) + '</summary><p>' + esc(L.answer) + '</p></details>'
+      + '</div></details>';
+  }
 
   // ---- generic step with checks ----
   function stepHTML(st) {
@@ -557,8 +678,8 @@
     var cnt = ok ? '<b>✓</b> ' + c.pass + ' of ' + c.total : '<b>' + rem + '</b> to fix · ' + c.pass + ' of ' + c.total + ' ok';
     if (c.severity === 'note') cnt = ok ? '<b>✓</b> ' + c.total + ' checked' : '<b>' + rem + '</b> to look at';
     var h = '<div class="check' + (ok ? ' ok' : '') + '" data-check="' + esc(c.key) + '" aria-expanded="' + (open ? 'true' : 'false') + '"><button class="chead" data-act="toggle-check"><span class="d" style="background:' + (ok ? 'var(--good)' : s.color) + '"></span><span class="gi"><b>' + esc(c.label) + '</b><span class="sev">' + (ok ? 'Done' : s.label) + '</span></span><span class="cnt">' + cnt + '</span><span class="chev">›</span></button>';
-    var wb = whyBlock(c.why, 'Why an agent cares');
-    h += '<div class="cbody"><div class="fix"><b>Fix ·</b> ' + esc(c.fix) + ' ' + wb.btn + '</div>' + wb.panel;
+    var wb = whyBlock(c.why, 'Why an agent cares'), tu = TUTOR[c.key];
+    h += '<div class="cbody">' + (tu ? '<div class="tutor"><div><span class="tl">What it is</span>' + esc(tu.what) + '</div><div><span class="tl">Where in Figma</span>' + esc(tu.where) + '</div></div>' : '') + '<div class="fix"><b>Fix ·</b> ' + esc(c.fix) + ' ' + wb.btn + '</div>' + wb.panel;
     if (c.caveat) h += '<p class="hint" style="margin:0 0 8px">' + esc(c.caveat) + '</p>';
     if (!ok) h += batchHTML(c);
     if (c.passed && c.passed.length) { h += '<details class="scaffold"><summary>Show the ' + c.passed.length + ' that pass (' + esc(c.passedLabel || '') + ')</summary><div class="rows">'; c.passed.forEach(function (x) { h += '<div class="row"><div class="r1"><span class="nm">' + esc(x.name) + '</span><span class="val">' + esc(x.value) + '</span></div></div>'; }); h += '</div></details>'; }
@@ -713,6 +834,9 @@
       list.slice(0, 3).forEach(function (x, i) { var wb = whyBlock(x.c.why, 'Why an agent cares');
         h += '<div class="action"><div class="n">' + (i + 1) + '</div><div class="b"><b>' + esc(x.c.label) + ' ' + wb.btn + '</b><span>' + remaining(x.c) + ' to fix · ' + esc(x.c.fix) + '</span>' + wb.panel + '</div><button class="do" data-act="go-check" data-step="' + x.step + '" data-check="' + esc(x.c.key) + '">Go</button></div>'; });
     } else if (!openTok) h += '<div class="empty win">✓ Every automatic check passes. Go through the checklist for the rest.</div>';
+    var lkeys = ['variables', 'styles', 'components', 'layers', 'checklist', 'report'], ldone = lkeys.filter(function (k) { return state.lessons[k]; }).length;
+    h += '<p class="lead">What you have learned</p><div class="cat" style="cursor:default"><div class="cat-top"><b>' + ldone + ' of 6 lessons</b><span class="val"><small>read a station and apply one fix there</small></span></div><div class="bar"><i style="width:' + Math.round(ldone / 6 * 100) + '%;background:var(--good)"></i></div><div class="hint" style="margin:8px 0 0">' + lkeys.map(function (k, i) { return '<span style="' + (state.lessons[k] ? 'color:var(--good)' : '') + '">' + (state.lessons[k] ? '✓ ' : (i + 1) + ' ') + STEP_LABELS[k] + '</span>'; }).join(' · ') + '</div></div>';
+    h += '<details class="why" id="glossary"><summary>Glossary: the words in this plugin</summary><div class="body">' + GLOSSARY.map(function (g) { return '<div class="gl"><b>' + esc(g[0]) + '</b> · ' + esc(g[1]) + '</div>'; }).join('') + '</div></details>';
     h += '<p class="lead">Steps</p>';
     d.steps.forEach(function (st, si) {
       var val = st.score === null ? '—' : st.score, w = st.score === null ? 0 : st.score, open = 0;
@@ -770,7 +894,7 @@
   // ---- report ----
   function reportText() {
     var d = state.result, L = [];
-    L.push('AI Ready Check ' + VERSION + ' · ' + d.fileName + ' · scope: ' + d.scope + ' · ' + new Date().toISOString().slice(0, 10));
+    L.push('AI Ready Coach ' + VERSION + ' · ' + d.fileName + ' · scope: ' + d.scope + ' · ' + new Date().toISOString().slice(0, 10));
     L.push('Overall: ' + (d.overall === null ? 'nothing measured' : d.overall + ' / 100 · ' + verdict(d.overall)));
     L.push('');
     d.steps.forEach(function (st, i) {
@@ -778,14 +902,24 @@
       st.checks.forEach(function (c) { if (c.total === 0) return; var rem = remaining(c); L.push('   ' + (rem ? '[ ] ' : '[x] ') + c.label + (rem ? ' · ' + rem + ' to fix' : '')); });
       L.push('');
     });
+    var devItems = []; CHECKLIST.forEach(function (sec) { if (sec.title !== 'Match with code' && sec.title !== 'Reach') return; sec.items.forEach(function (it) { if (!state.checklist[it.key]) devItems.push(it.label); }); });
+    var vs = stepByKey('variables'), syn = vs && vs.checks.filter(function (c) { return c.key === 'code-syntax'; })[0];
+    L.push('Clarify with your developer');
+    L.push('   1. Do these token names match the code? (the Web code syntax of my semantic tokens)');
+    (syn && syn.passed ? syn.passed.slice(0, 12) : []).forEach(function (x) { L.push('      ' + x.name + '  ->  ' + x.value); });
+    if (syn && syn.passed && syn.passed.length > 12) L.push('      … and ' + (syn.passed.length - 12) + ' more, see the Variables station');
+    L.push('   2. Which props exist only in code (href, onClick, aria-label)? I will name them in the component descriptions.');
+    L.push('   3. Can an agent reach this file over MCP from your side? If not, what is missing: a Dev seat, the MCP server, a rules file?');
+    L.push('   4. Which of these is true today:'); devItems.forEach(function (x) { L.push('      [ ] ' + x); });
+    L.push('');
     L.push('5. Checklist · ' + Object.keys(state.checklist).length + ' / ' + CHECKLIST_TOTAL);
     CHECKLIST.forEach(function (sec) { sec.items.forEach(function (it) { L.push('   ' + (state.checklist[it.key] ? '[x] ' : '[ ] ') + it.label + (sec.title === 'Match with code' && !state.checklist[it.key] ? ' (dev)' : '')); }); });
     L.push('');
-    L.push('Made with AI Ready Check (beta), a free Figma plugin by Christine Vallaure, moonlearning.io · feedback: ' + FEEDBACK_EMAIL);
+    L.push('Made with AI Ready Coach (beta), a free Figma plugin by Christine Vallaure, moonlearning.io · feedback: ' + FEEDBACK_EMAIL);
     return L.join('\n');
   }
   function reportHTML() {
-    var h = stepHeader('Report', 'A plain-text summary to share with your team. The items marked (dev) need a developer.', null, null) + whyHTML('report', false);
+    var h = stepHeader('Report', 'A plain-text summary to share with your team, with the questions to clarify with your developer at the end.', null, null) + whyHTML('report', false);
     h += '<p class="lead">Summary</p><textarea class="report" id="report" readonly spellcheck="false">' + esc(reportText()) + '</textarea>';
     h += '<div class="dactions" style="margin-top:8px"><button class="btn primary" data-act="copy-report">Copy report</button><button class="btn" data-act="rerun">Run the check again</button></div>';
     h += '<p class="lead">What next</p><p class="hero" style="padding-top:0">Fix what you can here, tick the checklist, and hand the (dev) items to a developer with this report. Then run the check again. AI-ready is a list you keep working through, not a badge.</p>';
@@ -886,9 +1020,10 @@
         el.disabled = true; el.textContent = 'Connecting ' + items.length + '…';
         state.pending['b' + (++TOK)] = { btn: el, tokens: toks, check: 'colors', checks: ['colors', 'semantic-on-layers', 'text', 'radius', 'spacing'] };
         send({ type: 'fix', action: 'batch-fix', token: 'b' + TOK, items: items, notify: items.length + ' connected' }); return; }
-      case 'tick': send({ type: 'checklist-set', key: el.dataset.key, checked: el.checked }); return;
+      case 'tick': send({ type: 'checklist-set', key: el.dataset.key, checked: el.checked }); lessonDone('checklist'); return;
       case 'reset-checklist': { if (el.dataset.arm === '1') { send({ type: 'checklist-reset' }); } else { el.dataset.arm = '1'; el.textContent = 'Click again to reset all ticks'; } return; }
-      case 'copy-report': { var ta2 = $('report'); ta2.select(); try { document.execCommand('copy'); el.textContent = 'Copied ✓'; send({ type: 'notify', text: 'Report copied' }); } catch (err) { el.textContent = 'Select the text and copy it'; } return; }
+      case 'glossary': { goStep(0); var g = $('glossary'); if (g) { g.open = true; g.scrollIntoView({ block: 'start', behavior: 'smooth' }); } return; }
+      case 'copy-report': { var ta2 = $('report'); ta2.select(); try { document.execCommand('copy'); el.textContent = 'Copied ✓'; send({ type: 'notify', text: 'Report copied' }); lessonDone('report'); } catch (err) { el.textContent = 'Select the text and copy it'; } return; }
       case 'rerun': send({ type: 'run', scope: state.scope }); return;
     }
   });
@@ -905,11 +1040,11 @@
   function setBanner(on) { $('warn').classList.toggle('show', on); $('beta-pill').setAttribute('aria-expanded', String(on)); }
   $('warn-ok').addEventListener('click', function () { setBanner(false); send({ type: 'banner-dismiss' }); });
   $('beta-pill').addEventListener('click', function () { setBanner(!$('warn').classList.contains('show')); });
-  send({ type: 'banner-get' });
+  send({ type: 'banner-get' }); send({ type: 'lessons-get' });
   $('stepper').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) goStep(parseInt(b.dataset.step, 10)); });
   $('back').addEventListener('click', function () { goStep(state.step - 1); });
   $('next').addEventListener('click', function () { if (state.step === STEPS.length - 1) goStep(0); else goStep(state.step + 1); });
-  document.body.addEventListener('click', function (e) { var a = e.target.closest('.micro [data-extlink], .top [data-extlink]'); if (a) { e.preventDefault(); send({ type: 'open-url', url: a.getAttribute('data-extlink') }); } });
+  document.body.addEventListener('click', function (e) { var a = e.target.closest('.micro [data-extlink], .top [data-extlink]'); if (a) { e.preventDefault(); send({ type: 'open-url', url: a.getAttribute('data-extlink') }); return; } var g = e.target.closest('.micro [data-act="glossary"]'); if (g && state.result) { goStep(0); var gl = $('glossary'); if (gl) { gl.open = true; gl.scrollIntoView({ block: 'start' }); } } });
   document.addEventListener('keydown', function (e) { if (!state.result || e.target.matches('input, textarea, select')) return; if (e.key === 'ArrowRight' && (e.altKey || e.metaKey)) goStep(state.step + 1); if (e.key === 'ArrowLeft' && (e.altKey || e.metaKey)) goStep(state.step - 1); });
 
   // resize grip
@@ -937,12 +1072,14 @@
       goStep(0);
     }
     else if (msg.type === 'banner') { setBanner(!msg.data); }
+    else if (msg.type === 'lessons') { state.lessons = msg.data || {}; if (state.result && STEPS[state.step] === 'overview') renderStep(); }
     else if (msg.type === 'checklist') { state.checklist = msg.data || {}; if (state.result && (STEPS[state.step] === 'checklist' || STEPS[state.step] === 'overview' || STEPS[state.step] === 'report')) renderStep(); renderStepper(); }
     else if (msg.type === 'selection-info') { state.sel = msg.data; if (state.result && STEPS[state.step] === 'components') renderSelCard(); }
     else if (msg.type === 'fixed') {
       var p = state.pending[msg.token]; delete state.pending[msg.token]; if (!p) return;
       if (msg.ok) {
         var toks = p.tokens || (p.token ? [p.token] : []);
+        (function () { var k = STEPS[state.step]; if (k === 'overview') k = 'layers'; lessonDone(k); if (msg.action === 'apply-description' || msg.action === 'clean-description' || msg.action === 'rename-property') lessonDone('components'); })();
         toks.forEach(function (t) { state.done[t] = true; var r = rowOf(t); if (r) { r.classList.add('done'); var b = r.querySelector('.btn:not(.quiet):not(.primary)'); if (b) { b.textContent = 'Done ✓'; b.disabled = true; } var f = r.querySelector('.descform'); if (f) f.hidden = true; var tb = r.querySelector('[data-act="toggle-desc"]'); if (tb) { tb.textContent = 'Done ✓'; tb.disabled = true; } } });
         if (p.btn && !p.tokens) { p.btn.textContent = p.btn.classList.contains('primary') ? 'Applied ✓' : 'Done ✓'; p.btn.disabled = true; }
         if (p.btn && p.tokens) { p.btn.textContent = 'Done ✓'; }
