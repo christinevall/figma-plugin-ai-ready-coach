@@ -158,6 +158,9 @@
   .row .hint { font-size: 11px; color: var(--muted); }
   .tagchip { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--line-2); color: var(--ink-soft); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .more { font-size: 11px; color: var(--muted); padding: 6px 0 0; }
+  .edu { display: block; flex-basis: 100%; font-size: 10.5px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+  .edu code { font-size: 10px; }
+  .edu b { color: var(--ink-soft); font-weight: 600; }
 
   /* overview */
   .score-card { display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 13px; margin-top: 12px; }
@@ -287,7 +290,7 @@
   // ---------------------------------------------------------------------------
   // State and helpers
   // ---------------------------------------------------------------------------
-  var VERSION = '0.9.20 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
+  var VERSION = '0.10.0 · 2026-10-15'; // bump on every change, so testers and reports say which build ran
   var FEEDBACK_EMAIL = 'hello@moonlearning.io'; // beta feedback address; shown in the banner and in the report
   var state = { scope: 'selection', result: null, step: 0, checklist: {}, done: {}, sel: null, pending: {}, expanded: {} };
   var STEPS = ['overview', 'variables', 'styles', 'components', 'layers', 'checklist', 'report'];
@@ -519,7 +522,8 @@
   // ---- generic step with checks ----
   function stepHTML(st) {
     if (!st) return '';
-    var h = stepHeader(st.label, st.what, st.note, st.score) + whyHTML(st.key, true);
+    var note = st.note; if ((st.key === 'variables' || st.key === 'styles') && state.result && state.result.scope === 'selection') note = 'File-wide station: nothing here is about your selection. The connections for your selection are on the Overview and in Layers. ' + (st.note || '');
+    var h = stepHeader(st.label, st.what, note, st.score) + whyHTML(st.key, true);
     if (st.key === 'variables' && st.meta && st.meta.collections && st.meta.collections.length) {
       h += '<p class="lead">Your collections</p><div class="rows" style="margin-bottom:10px">';
       st.meta.collections.forEach(function (c) {
@@ -574,6 +578,13 @@
     }
     return '';
   }
+  // One line that says what an agent does with this layer before and after the fix.
+  function eduLine(it) {
+    var c = it.candidates && it.candidates[0];
+    if (!c) return '<span class="edu">Agent writes the raw value, because no token has it. Add a token for this value, or change the value to one you have.</span>';
+    var after = c.code ? '<code>' + esc(c.code) + '</code>' : '<b>' + esc(c.name) + '</b>' + (c.semantic ? '' : ' (a primitive; prefer a semantic token)');
+    return '<span class="edu">Agent writes: <code>' + esc((it.value || it.bound || '').split(' ')[0]) + '</code> hard-coded → after binding: ' + after + '.</span>';
+  }
   function candSelect(cands, cls) {
     if (!cands || !cands.length) return '';
     var h = '<select class="' + cls + '" aria-label="Matching token">';
@@ -625,9 +636,9 @@
           r2 = '<span class="val">' + sw + esc(it.prop === 'strokes' ? 'stroke ' : 'fill ') + esc(it.value) + '</span>';
           if (it.candidates && it.candidates.length) r2 += candSelect(it.candidates, 'cand') + '<button class="btn" data-act="bind-color" data-token="' + t + '">' + (done ? 'Bound ✓' : 'Bind') + '</button>';
           else r2 += '<span class="hint">no token with this value</span>';
-          r2 += selBtn; break; }
+          r2 += selBtn + eduLine(it); break; }
         case 'semantic-on-layers':
-          r2 = '<span class="val">' + esc(it.bound) + ' →</span>' + candSelect(it.candidates, 'cand') + '<button class="btn" data-act="bind-color" data-token="' + t + '">' + (done ? 'Bound ✓' : 'Rebind') + '</button>' + selBtn;
+          r2 = '<span class="val">' + esc(it.bound) + ' →</span>' + candSelect(it.candidates, 'cand') + '<button class="btn" data-act="bind-color" data-token="' + t + '">' + (done ? 'Bound ✓' : 'Rebind') + '</button>' + selBtn + eduLine(it);
           break;
         case 'radius':
           r2 = '<span class="val">radius ' + esc(it.value) + '</span>';
@@ -644,7 +655,7 @@
           r2 = '<span class="val">' + esc(it.value) + '</span>';
           if (it.candidates && it.candidates.length) r2 += candSelect(it.candidates, 'cand') + '<button class="btn" data-act="apply-text-style" data-token="' + t + '">' + (done ? 'Applied ✓' : 'Apply style') + '</button>';
           else r2 += '<span class="hint">no style with this font and size</span>';
-          r2 += selBtn; break;
+          r2 += selBtn + (it.candidates && it.candidates.length ? '<span class="edu">Agent reads: a one-off font → after: the style <b>' + esc(it.candidates[0].name) + '</b>, which maps to a type token in code.</span>' : '<span class="edu">Agent reads: a one-off font with no name. Create a style for it, or pick one.</span>'); break;
         case 'names':
           r2 = '<input type="text" class="nn" placeholder="e.g. Card / Header" aria-label="New layer name"><button class="btn" data-act="rename-node" data-token="' + t + '">' + (done ? 'Done ✓' : 'Rename') + '</button>' + selBtn;
           break;
@@ -667,15 +678,28 @@
     var h = '<div class="score-card"><div class="ring"><svg width="78" height="78"><circle cx="39" cy="39" r="33" fill="none" stroke="#ece8df" stroke-width="7"/><circle cx="39" cy="39" r="33" fill="none" stroke="' + col + '" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + circ + '" stroke-dashoffset="' + off + '"/></svg><div class="num"><b>' + d.overall + '</b><small>/ 100</small></div></div>';
     h += '<div class="score-meta"><h2>' + verdict(d.overall) + '</h2><p>' + esc(d.fileName) + ' · ' + plural(d.counts.components, 'component') + ' · ' + plural(d.counts.variables, 'variable') + ' · ' + plural(d.counts.nodes, 'layer') + '</p>';
     h += '<div class="pills"><span class="pill"><span class="d" style="background:var(--crit)"></span>' + d.counts.errors + ' critical</span><span class="pill"><span class="d" style="background:var(--warn)"></span>' + d.counts.warnings + ' worth fixing</span><span class="pill"><span class="d" style="background:var(--info)"></span>' + d.counts.infos + ' polish</span></div></div></div>';
-    // start here: top 3 checks by impact
+    // missing connections in this scope: the rows themselves, with one button for all matches
+    var TOKEN_CHECKS = ['colors', 'semantic-on-layers', 'text', 'radius', 'spacing'];
+    var layersStep = stepByKey('layers'), tokenChecks = layersStep ? layersStep.checks.filter(function (c) { return TOKEN_CHECKS.indexOf(c.key) >= 0 && remaining(c) > 0; }) : [];
+    var openTok = 0, matchTok = 0; tokenChecks.forEach(function (c) { c.items.forEach(function (it) { if (state.done[it._t]) return; openTok++; if (hasMatch(c, it)) matchTok++; }); });
+    var scopeWord = d.scope === 'selection' ? 'your selection' : d.scope === 'page' ? 'this page' : 'the file';
+    if (openTok) {
+      h += '<p class="lead">Missing connections in ' + scopeWord + '</p>';
+      h += '<p class="hero" style="padding:0 0 8px">' + openTok + ' value' + (openTok === 1 ? '' : 's') + ' not connected to a token or style. ' + (matchTok ? matchTok + ' match' + (matchTok === 1 ? 'es' : '') + ' one you already have.' : 'None match a token you have.') + '</p>';
+      if (matchTok) h += '<div class="batch"><button class="btn primary" data-act="connect-all">Connect all ' + matchTok + ' match' + (matchTok === 1 ? '' : 'es') + '</button><span class="hint">Semantic tokens first. One Cmd+Z undoes all of it.</span></div>';
+      tokenChecks.forEach(function (c) { h += checkHTML(c); });
+    } else if (layersStep && layersStep.score !== null) {
+      h += '<p class="lead">Connections in ' + scopeWord + '</p><div class="empty win" style="padding:8px 0 10px;text-align:left">✓ Every colour, radius, gap and text in ' + scopeWord + ' is connected to a token or style.</div>';
+    }
+    // start here: top 3 of the remaining checks by impact
     var sevW = { error: 3, warn: 2, info: 1, note: 0 }, list = [];
-    d.steps.forEach(function (st, si) { st.checks.forEach(function (c) { var rem = remaining(c); if (rem && c.scored) list.push({ c: c, step: si + 1, impact: rem * sevW[c.severity] * st.weight }); }); });
+    d.steps.forEach(function (st, si) { st.checks.forEach(function (c) { if (TOKEN_CHECKS.indexOf(c.key) >= 0) return; var rem = remaining(c); if (rem && c.scored) list.push({ c: c, step: si + 1, impact: rem * sevW[c.severity] * st.weight }); }); });
     list.sort(function (a, b) { return b.impact - a.impact; });
     if (list.length) {
       h += '<p class="lead">Start here</p>';
       list.slice(0, 3).forEach(function (x, i) { var wb = whyBlock(x.c.why, 'Why an agent cares');
         h += '<div class="action"><div class="n">' + (i + 1) + '</div><div class="b"><b>' + esc(x.c.label) + ' ' + wb.btn + '</b><span>' + remaining(x.c) + ' to fix · ' + esc(x.c.fix) + '</span>' + wb.panel + '</div><button class="do" data-act="go-check" data-step="' + x.step + '" data-check="' + esc(x.c.key) + '">Go</button></div>'; });
-    } else h += '<div class="empty win">✓ Every automatic check passes. Go through the checklist for the rest.</div>';
+    } else if (!openTok) h += '<div class="empty win">✓ Every automatic check passes. Go through the checklist for the rest.</div>';
     h += '<p class="lead">Steps</p>';
     d.steps.forEach(function (st, si) {
       var val = st.score === null ? '—' : st.score, w = st.score === null ? 0 : st.score, open = 0;
@@ -758,6 +782,15 @@
   // ---------------------------------------------------------------------------
   // Actions (one delegated handler)
   // ---------------------------------------------------------------------------
+  function hasMatch(c, it) { if (c.key === 'spacing') return (it.fields || []).some(function (f) { return f.candidates && f.candidates.length; }); return !!(it.candidates && it.candidates.length); }
+  function batchItemFor(c, it) {
+    var r = rowOf(it._t), sel = r && r.querySelector('select.cand'), vid = sel ? sel.value : (it.candidates && it.candidates[0] ? it.candidates[0].id : null);
+    if (c.key === 'colors' || c.key === 'semantic-on-layers') return vid ? { action: 'bind-color', nodeId: it.id, prop: it.prop, paintIndex: it.paintIndex, variableId: vid, token: it._t } : null;
+    if (c.key === 'radius') return vid ? { action: 'bind-radius', nodeId: it.id, variableId: vid, token: it._t } : null;
+    if (c.key === 'text') return vid ? { action: 'apply-text-style', nodeId: it.id, styleId: vid, token: it._t } : null;
+    if (c.key === 'spacing') { var b = (it.fields || []).filter(function (f) { return f.candidates && f.candidates.length; }).map(function (f) { return { field: f.field, variableId: f.candidates[0].id }; }); return b.length ? { action: 'bind-spacing', nodeId: it.id, bindings: b, token: it._t } : null; }
+    return null;
+  }
   function itemByToken(t) { var r = null; state.result.steps.forEach(function (st) { st.checks.forEach(function (c) { c.items.forEach(function (it) { if (it._t === t) r = { c: c, it: it }; }); }); }); return r; }
   function rowOf(t) { return document.querySelector('.row[data-token="' + t + '"]'); }
   function fix(action, payload, token, btn, notify) {
@@ -769,14 +802,16 @@
   }
   function refreshCheckHeader(key) {
     var c = null; state.result.steps.forEach(function (st) { st.checks.forEach(function (x) { if (x.key === key) c = x; }); }); if (!c) return;
-    var el = document.querySelector('.check[data-check="' + key + '"]'); if (!el) return;
+    var els = document.querySelectorAll('.check[data-check="' + key + '"]'); if (!els.length) return;
     var rem = remaining(c), ok = rem === 0;
+    [].forEach.call(els, function (el) {
     el.classList.toggle('ok', ok);
     el.querySelector('.d').style.background = ok ? 'var(--good)' : SEV[c.severity].color;
     el.querySelector('.sev').textContent = ok ? 'Done' : SEV[c.severity].label;
     var fixedNow = c.total - c.items.length + (c.items.length - rem);
     el.querySelector('.cnt').innerHTML = ok ? '<b>✓</b> ' + c.total + ' of ' + c.total : '<b>' + rem + '</b> to fix · ' + fixedNow + ' of ' + c.total + ' ok';
     var b = el.querySelector('.batch'); if (b) b.outerHTML = batchHTML(c);
+    });
     renderStepper();
   }
 
@@ -828,6 +863,14 @@
         el.disabled = true; el.textContent = 'Hiding…';
         state.pending['b' + (++TOK)] = { btn: el, tokens: toks2, check: c2.key };
         send({ type: 'fix', action: 'hide-collection', token: 'b' + TOK, collectionId: el.dataset.col, hidden: true, notify: 'Primitives hidden from publishing' }); return; }
+      case 'connect-all': {
+        if (el.dataset.arm !== '1') { el.dataset.arm = '1'; el.dataset.orig = el.textContent; el.textContent = 'Click again to connect them all'; setTimeout(function () { if (el.dataset.arm === '1') { el.dataset.arm = ''; el.textContent = el.dataset.orig; } }, 4000); return; }
+        var ls = stepByKey('layers'); if (!ls) return; var items = [], toks = [];
+        ls.checks.forEach(function (c) { if (['colors', 'semantic-on-layers', 'text', 'radius', 'spacing'].indexOf(c.key) < 0) return; c.items.forEach(function (it) { if (state.done[it._t]) return; var bi = batchItemFor(c, it); if (bi) { items.push(bi); toks.push(it._t); } }); });
+        if (!items.length) return;
+        el.disabled = true; el.textContent = 'Connecting ' + items.length + '…';
+        state.pending['b' + (++TOK)] = { btn: el, tokens: toks, check: 'colors', checks: ['colors', 'semantic-on-layers', 'text', 'radius', 'spacing'] };
+        send({ type: 'fix', action: 'batch-fix', token: 'b' + TOK, items: items, notify: items.length + ' connected' }); return; }
       case 'tick': send({ type: 'checklist-set', key: el.dataset.key, checked: el.checked }); return;
       case 'reset-checklist': { if (el.dataset.arm === '1') { send({ type: 'checklist-reset' }); } else { el.dataset.arm = '1'; el.textContent = 'Click again to reset all ticks'; } return; }
       case 'copy-report': { var ta2 = $('report'); ta2.select(); try { document.execCommand('copy'); el.textContent = 'Copied ✓'; send({ type: 'notify', text: 'Report copied' }); } catch (err) { el.textContent = 'Select the text and copy it'; } return; }
@@ -888,7 +931,8 @@
         toks.forEach(function (t) { state.done[t] = true; var r = rowOf(t); if (r) { r.classList.add('done'); var b = r.querySelector('.btn:not(.quiet):not(.primary)'); if (b) { b.textContent = 'Done ✓'; b.disabled = true; } var f = r.querySelector('.descform'); if (f) f.hidden = true; var tb = r.querySelector('[data-act="toggle-desc"]'); if (tb) { tb.textContent = 'Done ✓'; tb.disabled = true; } } });
         if (p.btn && !p.tokens) { p.btn.textContent = p.btn.classList.contains('primary') ? 'Applied ✓' : 'Done ✓'; p.btn.disabled = true; }
         if (p.btn && p.tokens) { p.btn.textContent = 'Done ✓'; }
-        var keys = {}; toks.forEach(function (t) { keys[t.split(':')[0]] = 1; }); if (p.check) keys[p.check] = 1; Object.keys(keys).forEach(refreshCheckHeader);
+        var keys = {}; toks.forEach(function (t) { keys[t.split(':')[0]] = 1; }); if (p.check) keys[p.check] = 1; (p.checks || []).forEach(function (k) { keys[k] = 1; }); Object.keys(keys).forEach(refreshCheckHeader);
+        if (p.tokens && STEPS[state.step] === 'overview') renderStep();
         if (msg.action === 'apply-description' && !p.token) send({ type: 'selection-info' });
       } else {
         if (p.btn) { p.btn.disabled = false; p.btn.textContent = p.btn.dataset.orig || 'Try again'; }

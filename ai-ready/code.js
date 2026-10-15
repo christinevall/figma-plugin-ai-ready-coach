@@ -16,7 +16,7 @@ var DEFAULT_MODE = /^(Mode|Value)\s*\d*$/i;
 // Hue words only. "neutral" is a role in semantic naming (like brand or danger), so it is not in this list.
 var HUE_WORD = /(^|[\/\-_ .])(blue|red|green|gray|grey|orange|yellow|purple|pink|teal|slate|zinc|stone|amber|lime|emerald|cyan|sky|indigo|violet|fuchsia|rose|brown|magenta)([\/\-_ .]|$)/i;
 var STEP_NUMBER = /(^|[\/\-_ .])\d{2,4}$/;
-var INTERACTIVE = /button|btn|cta|input|field|textbox|checkbox|radio|toggle|switch|select|dropdown|combobox|tab|link|chip|slider|menu|item|accordion|pagination|stepper/i;
+var INTERACTIVE = /button|btn|cta|input|field|textbox|checkbox|radio|toggle|switch|select|dropdown|combobox|\btabs?\b|link|slider/i;
 var STATE_AXIS = /state|status|interaction/i;
 var STATE_PROP = /disabled|hover|focus|pressed|active|selected|checked|loading/i;
 
@@ -277,10 +277,10 @@ async function loadVariables() {
       var val = resolveValue(v, m.modeId, 0); if (val === null || val === undefined) return;
       if (v.resolvedType === 'COLOR' && typeof val === 'object' && 'r' in val) {
         var k = colorKey(val); if (!colorIndex[k]) colorIndex[k] = [];
-        if (!colorIndex[k].some(function (x) { return x.id === v.id; })) colorIndex[k].push({ id: v.id, name: v.name, semantic: i.semantic, hidden: i.hidden, scopes: i.scopes });
+        if (!colorIndex[k].some(function (x) { return x.id === v.id; })) colorIndex[k].push({ id: v.id, name: v.name, semantic: i.semantic, hidden: i.hidden, scopes: i.scopes, code: i.codeSyntax });
       } else if (v.resolvedType === 'FLOAT' && typeof val === 'number') {
         var fk = String(Math.round(val * 100) / 100); if (!floatIndex[fk]) floatIndex[fk] = [];
-        if (!floatIndex[fk].some(function (x) { return x.id === v.id; })) floatIndex[fk].push({ id: v.id, name: v.name, semantic: i.semantic, hidden: i.hidden, scopes: i.scopes });
+        if (!floatIndex[fk].some(function (x) { return x.id === v.id; })) floatIndex[fk].push({ id: v.id, name: v.name, semantic: i.semantic, hidden: i.hidden, scopes: i.scopes, code: i.codeSyntax });
       }
     });
   });
@@ -298,7 +298,7 @@ function rankCandidates(list, wantScope) {
       return sc;
     }
     return s(b) - s(a);
-  }).slice(0, 6).map(function (x) { return { id: x.id, name: x.name, semantic: x.semantic }; });
+  }).slice(0, 6).map(function (x) { return { id: x.id, name: x.name, semantic: x.semantic, code: x.code || '' }; });
 }
 
 // ---------------------------------------------------------------------------
@@ -407,7 +407,7 @@ async function runAudit(scope) {
       }
     }
     if (v.semantic) { if (isEmpty(v.description)) F(vDesc, varItem(v)); else P(vDesc); }
-    else if (V.hasSemanticColors || V.collections.some(function (c) { return c.kind === 'semantic'; })) { if (v.hidden) P(vHidden); else F(vHidden, varItem(v, { collectionId: v.collectionId })); }
+    else if (v.collectionKind === 'primitive' && (V.hasSemanticColors || V.collections.some(function (c) { return c.kind === 'semantic'; }))) { if (v.hidden) P(vHidden); else F(vHidden, varItem(v, { collectionId: v.collectionId })); }
   });
   if (styleTotal >= 6) {
     var styles = Object.keys(styleCounts).filter(function (k) { return styleCounts[k] / styleTotal > 0.15; });
@@ -486,9 +486,9 @@ async function runAudit(scope) {
       var hasState = cp.variants.some(function (v) { return STATE_AXIS.test(v.name); }) || cp.keys.some(function (k) { return STATE_PROP.test(k.name); }) || /hover|focus|pressed|disabled/i.test(desc);
       if (hasState) P(cStates); else F(cStates, nodeItem(comp, base));
     }
-    var links = []; try { links = comp.documentationLinks || []; } catch (e) {}
-    if (links.length) P(cDocs); else F(cDocs, nodeItem(comp, {}));
     var root = comp.type === 'COMPONENT_SET' ? (comp.children && comp.children[0]) : comp;
+    var links = []; try { links = comp.documentationLinks || []; } catch (e) {}
+    if (!(root && isDrawing(root))) { if (links.length) P(cDocs); else F(cDocs, nodeItem(comp, {})); }
     if (root && 'children' in root && root.children && root.children.length > 1 && !isDrawing(root)) {
       if (root.layoutMode && root.layoutMode !== 'NONE') P(cLayout); else F(cLayout, nodeItem(comp, {}));
     }
@@ -565,7 +565,7 @@ async function runAudit(scope) {
           P(lColor);
           var bv = V.info[bound.id];
           if (bv && !bv.semantic && V.aliasTargets[bound.id] && V.aliasTargets[bound.id].length) {
-            var sem = V.aliasTargets[bound.id].map(function (id) { return { id: id, name: V.info[id].name, semantic: true }; }).slice(0, 6);
+            var sem = V.aliasTargets[bound.id].map(function (id) { return { id: id, name: V.info[id].name, semantic: true, code: V.info[id].codeSyntax }; }).slice(0, 6);
             F(lPrim, nodeItem(node, { prop: prop, paintIndex: idx, bound: bv.name, candidates: sem }));
           } else if (bv) P(lPrim);
           return;
@@ -593,7 +593,7 @@ async function runAudit(scope) {
       if (any) { if (allBound) P(lSpace); else F(lSpace, nodeItem(node, { fields: fields })); }
     }
     // text
-    if (node.type === 'TEXT') {
+    if (node.type === 'TEXT' && !inInstance) {
       var ts = node.textStyleId && node.textStyleId !== figma.mixed && node.textStyleId !== '';
       var tbv = node.boundVariables || {};
       var fullyBound = !!(tbv.fontSize && tbv.fontFamily && (tbv.fontWeight || tbv.fontStyle));
@@ -622,7 +622,7 @@ async function runAudit(scope) {
       if (node.layoutMode && node.layoutMode !== 'NONE') P(lLayout); else F(lLayout, nodeItem(node, { count: node.children.length }));
     }
     // names
-    if (node.type !== 'INSTANCE' && !inInstance) {
+    if (node.type !== 'INSTANCE' && !inInstance && !(DRAWING_TYPES[node.type] && node.parent && isDrawing(node.parent))) {
       if (DEFAULT_NAME.test(node.name)) F(lName, nodeItem(node, {})); else P(lName);
     }
   });
@@ -728,6 +728,11 @@ var FIX = {
     var n = await getNode(m.nodeId);
     for (var i = 0; i < m.bindings.length; i++) { var v = await getVar(m.bindings[i].variableId); n.setBoundVariable(m.bindings[i].field, v); }
   },
+  'batch-fix': async function (m) {
+    var items = listOf(m.items), done = 0, failed = [];
+    for (var i = 0; i < items.length; i++) { var fn = FIX[items[i].action]; if (!fn || items[i].action === 'batch-fix') continue; try { await fn(items[i]); done++; } catch (e) { failed.push({ token: items[i].token, error: String(e && e.message || e) }); } }
+    m._result = { done: done, failed: failed };
+  },
   'apply-text-style': async function (m) {
     var n = await getNode(m.nodeId); if (n.type !== 'TEXT') throw new Error('Not a text layer.');
     var s = await figma.getStyleByIdAsync(m.styleId); if (!s || s.type !== 'TEXT') throw new Error('Text style not found.');
@@ -827,6 +832,11 @@ var FIX = {
       n.setBoundVariable(bindings[i].field, await getVar(bindings[i].variableId));
     }
   },
+  'batch-fix': async function (m) {
+    var items = listOf(m.items), done = 0, failed = [];
+    for (var i = 0; i < items.length; i++) { var fn = FIX[items[i].action]; if (!fn || items[i].action === 'batch-fix') continue; try { await fn(items[i]); done++; } catch (e) { failed.push({ token: items[i].token, error: String(e && e.message || e) }); } }
+    m._result = { done: done, failed: failed };
+  },
   'apply-text-style': async function (m) {
     var n = await getNode(m.nodeId); if (n.type !== 'TEXT') throw new Error('Not a text layer.');
     var s = await figma.getStyleByIdAsync(reqId(m.styleId, 'style')); if (!s || s.type !== 'TEXT') throw new Error('Text style not found.');
@@ -859,7 +869,7 @@ var HANDLERS = {
     var fn = FIX[m.action]; if (!fn) throw new Error('Unknown action.');
     await fn(m);
     try { figma.commitUndo(); } catch (e) {} // one undo step per fix, so Cmd+Z reverts exactly one click
-    figma.ui.postMessage({ type: 'fixed', ok: true, token: m.token, action: m.action });
+    figma.ui.postMessage({ type: 'fixed', ok: true, token: m.token, action: m.action, result: m._result || null });
     if (typeof m.notify === 'string' && m.notify) figma.notify(m.notify.slice(0, LIMITS.notify), { timeout: 1500 });
   },
   'select': async function (m) {
